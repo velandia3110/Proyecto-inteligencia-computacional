@@ -1,0 +1,22 @@
+[project]
+name = "mathagents"
+version = "0.1.0"
+description = "Sistema multiagente de resolucion matematica verificada por Lean 4"
+requires-python = ">=3.11"
+dependencies = [
+    "jsonschema>=4.21",       # contratos RNF-4
+    "langgraph>=0.2",         # orquestador (decisions.md D1.1)
+    "anthropic>=0.40",        # LLM de planificacion y critica (D1.4)
+]
+
+# Se agregan cuando toquen, no antes:
+#   semana 4  -> datasets (ingesta de miniF2F/PutnamBench)
+#   semana 6  -> faiss-cpu, sentence-transformers (BGE-M3)
+#   semana 12 -> scipy, statsmodels (Wilson, McNemar, bootstrap)
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["src"]

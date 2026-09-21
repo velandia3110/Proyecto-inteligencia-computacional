@@ -1,0 +1,16 @@
+__pycache__/
+*.pyc
+.venv/
+.env
+
+# Artefactos de Lean: los regenera el build de Docker, pesan GB
+lean/.lake/
+lean/lake-manifest.json
+
+# Indice FAISS y corpus: se reconstruyen desde el commit de Mathlib (semana 6)
+data/index/
+data/mathlib_premises.jsonl
+
+# Logs de corridas: los del experimento final SI se versionan (semana 11)
+runs/*.jsonl
+!runs/.gitkeep

@@ -8,13 +8,22 @@ Cambiar cualquier fila cuesta semanas. Cambio → nueva fila en *Historial*, nun
 | # | Decisión | Elección | Justificación |
 |---|---|---|---|
 | D1.1 | Orquestador | **LangGraph** | Estado tipado + checkpoints. El grafo es un entregable visible (15% arquitectura); CrewAI lo oculta tras roles. |
-| D1.2 | Interfaz Lean | **LeanInteract** sobre `leanprover-community/repl` | LeanDojo exige crear/tracear un repo Lean por interacción; el REPL acepta código suelto y permite sesiones vivas. |
+| D1.2 | Interfaz Lean | `leanprover-community/repl` (cliente JSON propio, ver nota) | LeanDojo exige crear/tracear un repo Lean por interacción; el REPL acepta código suelto y permite sesiones vivas. |
 | D1.3 | Mathlib | Commit **fijo** + `lake exe cache get` en el build de Docker | Compilar Mathlib desde fuente son horas de CPU por imagen. |
 | D1.4 | LLM planificación/crítica | Modelo de frontera vía API (`claude-opus-5`) | 1–2 llamadas por problema; el costo marginal es irrelevante frente a la calidad del plan. |
 | D1.5 | LLM formalización | **Goedel-Prover-V2-8B** (Apache-2.0) | Es el volumen de llamadas. 84.6% pass@32 en miniF2F siendo ~80× menor que DeepSeek-Prover-V2-671B. Self-hosted = costo marginal ≈ 0. |
 | D1.6 | Embeddings | **BGE-M3** + FAISS `IndexFlatIP` | Local, sin costo por llamada. Vectores L2-normalizados ⇒ producto interno = coseno (ver `docs/design-document.md` §4). |
 | D1.7 | Benchmark | **miniF2F** primario, **PutnamBench** secundario | Enunciados ya formalizados y auditados: elimina el riesgo de mal-formalización del enunciado. |
 | D1.8 | Lenguaje del informe | Inglés, IMRaD | Requisito del curso. Los documentos internos (`docs/`) van en español. |
+
+**Nota sobre D1.2.** LeanInteract es un envoltorio *sobre el mismo* `leanprover-community/repl`;
+su valor añadido es gestionar el proyecto Lean y la toolchain, que aquí ya resuelve el Dockerfile.
+Se habla con el REPL directamente desde `src/lean_repl.py` (~120 líneas, solo stdlib) por dos
+razones: el protocolo JSON es estable y no introduce deriva de versión de una dependencia
+intermedia, y en la semana 7 hace falta un **pool de procesos REPL reutilizables**, que exige
+control sobre el ciclo de vida del proceso. Si el cliente propio da problemas, `lean-interact` se
+instala y se sustituye la implementación de `LeanRepl.run`: el resto del sistema solo depende de
+esa firma.
 
 ## D2 — Solapamiento Crítico ↔ self-correction del prover
 
