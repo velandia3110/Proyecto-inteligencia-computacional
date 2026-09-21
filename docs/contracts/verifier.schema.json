@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "verifier.schema.json",
+  "title": "Salida del Verificador (RF-5)",
+  "description": "Deterministico, no es un LLM. Tiene contrato porque su salida cruza la frontera entre modulos, y el RNF-4 aplica a la frontera.",
+  "type": "object",
+  "required": ["verdict", "raw"],
+  "additionalProperties": false,
+  "properties": {
+    "verdict": {
+      "enum": ["OK", "SORRY", "AXIOM", "SYNTAX_ERROR", "MISSING_LEMMA", "UNSOLVED_GOALS", "TIMEOUT"],
+      "description": "SORRY y AXIOM son los que impiden que el sistema se autoengane. Sin ellos la metrica principal es falsificable."
+    },
+    "raw": {
+      "type": "string",
+      "description": "Salida cruda del REPL, sin recortar. Alimenta el reintento (RF-6) y la taxonomia de errores."
+    },
+    "axioms": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Resultado de #print axioms. Permitidos: propext, Classical.choice, Quot.sound."
+    },
+    "missing_identifiers": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Extraidos de unknown identifier / unknown constant. Reconsulta dirigida del RAG."
+    },
+    "elapsed_ms": { "type": "integer", "minimum": 0 }
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "autoformalizer.schema.json",
+  "title": "Salida del Autoformalizador (RF-4)",
+  "description": "Boceto + lemas recuperados -> tacticas Lean 4. ok=false produce FORMALIZATION_FAILED, estado DISTINTO de VERIFY_FAILED: es un fallo de traduccion, no de matematica.",
+  "type": "object",
+  "required": ["subgoal_name", "ok"],
+  "additionalProperties": false,
+  "properties": {
+    "subgoal_name": { "type": "string" },
+    "ok": { "type": "boolean" },
+    "proof": {
+      "type": "string",
+      "description": "Bloque de tacticas que reemplaza al `sorry`. Requerido si ok=true."
+    },
+    "failure_reason": {
+      "type": "string",
+      "description": "Requerido si ok=false. Es lo que lee el Critico."
+    },
+    "imports": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Imports adicionales de Mathlib que la prueba necesita."
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "ok": { "const": true } }, "required": ["ok"] },
+      "then": { "required": ["proof"] }
+    },
+    {
+      "if": { "properties": { "ok": { "const": false } }, "required": ["ok"] },
+      "then": { "required": ["failure_reason"] }
+    }
+  ]
+}

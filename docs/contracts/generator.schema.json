@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "generator.schema.json",
+  "title": "Salida del Generador (RF-2)",
+  "description": "n bocetos de prueba por subobjetivo mas el voto por acuerdo estructural (self-consistency).",
+  "type": "object",
+  "required": ["subgoal_name", "sketches", "selected"],
+  "additionalProperties": false,
+  "properties": {
+    "subgoal_name": { "type": "string" },
+    "sketches": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 4,
+      "items": {
+        "type": "object",
+        "required": ["steps", "tactic_hints"],
+        "additionalProperties": false,
+        "properties": {
+          "steps": {
+            "type": "array",
+            "minItems": 1,
+            "items": { "type": "string" },
+            "description": "Cadena de razonamiento en lenguaje natural."
+          },
+          "tactic_hints": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Tacticas Lean candidatas: linarith, norm_num, ring, simp, omega, ..."
+          },
+          "uses_lemmas": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Nombres tomados de la salida del Recuperador. Un nombre fuera de esa lista es una alucinacion y se marca en el log."
+          }
+        }
+      }
+    },
+    "selected": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Indice del boceto ganador dentro de `sketches`."
+    },
+    "agreement": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Fraccion de bocetos que coinciden estructuralmente con el elegido. Con n=1 vale 1.0 por definicion y no informa."
+    }
+  }
+}

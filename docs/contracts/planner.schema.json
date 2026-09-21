@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "planner.schema.json",
+  "title": "Salida del Planificador (RF-1)",
+  "description": "Esqueleto Lean 4 con un `have ... := by sorry` por subobjetivo. Debe compilar en modo permitir-sorries antes de intentar probar nada.",
+  "type": "object",
+  "required": ["theorem_name", "skeleton", "subgoals", "rationale"],
+  "additionalProperties": false,
+  "properties": {
+    "theorem_name": { "type": "string", "minLength": 1 },
+    "skeleton": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Teorema Lean 4 completo, incluyendo el enunciado formal original SIN modificar."
+    },
+    "subgoals": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 5,
+      "description": "maxItems=5 no es estetico: acota el peor caso del presupuesto de llamadas (RNF-3).",
+      "items": {
+        "type": "object",
+        "required": ["name", "statement", "depends_on"],
+        "additionalProperties": false,
+        "properties": {
+          "name": { "type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_]*$" },
+          "statement": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Tipo Lean del `have`, sin el `:= by sorry`."
+          },
+          "depends_on": {
+            "type": "array",
+            "items": { "type": "string" },
+            "default": [],
+            "description": "Nombres de subobjetivos previos que este usa."
+          },
+          "nl_hint": { "type": "string" }
+        }
+      }
+    },
+    "rationale": {
+      "type": "string",
+      "description": "Por que esta descomposicion. Va al informe, no al prompt siguiente."
+    }
+  }
+}

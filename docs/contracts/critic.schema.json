@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "critic.schema.json",
+  "title": "Salida del Critico / Refinador (RF-6)",
+  "description": "La politica error->accion es una tabla fija (design-document.md seccion 3), NO una decision libre del LLM. El LLM clasifica y diagnostica; el codigo decide.",
+  "type": "object",
+  "required": ["error_class", "action", "diagnosis"],
+  "additionalProperties": false,
+  "properties": {
+    "error_class": {
+      "enum": ["SYNTAX", "MISSING_LEMMA", "UNSOLVED_GOALS", "TIMEOUT", "PLANNING_ERROR", "BUDGET_EXHAUSTED"],
+      "description": "Taxonomia de la seccion 8.3."
+    },
+    "action": {
+      "enum": ["RETRY_FORMALIZE", "RETRIEVE_MORE", "REGENERATE_SKETCH", "REPLAN", "ABANDON"],
+      "description": "Derivada de error_class por tabla. Se valida en codigo: una accion incoherente con la clase es un bug, no una opinion."
+    },
+    "diagnosis": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Que fallo, en una frase. Se inyecta en el prompt del reintento junto al error crudo de Lean."
+    },
+    "new_k": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 50,
+      "description": "Solo para RETRIEVE_MORE."
+    },
+    "recoverable": {
+      "type": "boolean",
+      "description": "false corta el ciclo temprano y ahorra presupuesto (RNF-3)."
+    }
+  }
+}

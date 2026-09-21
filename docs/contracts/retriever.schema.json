@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "retriever.schema.json",
+  "title": "Salida del Recuperador (RF-3)",
+  "description": "Top-k premisas de Mathlib por coseno. Deterministico: mismo subobjetivo y mismo indice dan el mismo resultado.",
+  "type": "object",
+  "required": ["query", "k", "lemmas"],
+  "additionalProperties": false,
+  "properties": {
+    "query": { "type": "string", "minLength": 1 },
+    "k": { "type": "integer", "minimum": 1, "maximum": 50 },
+    "embedding_model": {
+      "type": "string",
+      "description": "Fijado y registrado para reproducibilidad (RNF-2)."
+    },
+    "index_commit": {
+      "type": "string",
+      "description": "Commit de Mathlib del que se extrajo el corpus de premisas."
+    },
+    "lemmas": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "type", "score"],
+        "additionalProperties": false,
+        "properties": {
+          "name": { "type": "string" },
+          "type": { "type": "string", "description": "Tipo pretty-printed. Es la senal fuerte del embedding." },
+          "docstring": { "type": "string" },
+          "score": {
+            "type": "number",
+            "minimum": -1,
+            "maximum": 1,
+            "description": "Similitud coseno. El rango es [-1,1] porque los vectores van L2-normalizados."
+          }
+        }
+      }
+    }
+  }
+}
