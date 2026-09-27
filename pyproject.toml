@@ -7,12 +7,16 @@ dependencies = [
     "jsonschema>=4.21",       # contratos RNF-4
     "langgraph>=0.2",         # orquestador (decisions.md D1.1)
     "anthropic>=0.40",        # LLM de planificacion y critica (D1.4)
+    "numpy>=1.26",            # vectores del recuperador
 ]
 
+[project.optional-dependencies]
+# El recuperador (semana 6 en adelante): indice FAISS y BGE-M3 para codificar consultas.
+rag = ["faiss-cpu>=1.8", "sentence-transformers>=3.0"]
+
 # Se agregan cuando toquen, no antes:
-#   semana 4  -> datasets (ingesta de miniF2F/PutnamBench)
-#   semana 6  -> faiss-cpu, sentence-transformers (BGE-M3)
 #   semana 12 -> scipy, statsmodels (Wilson, McNemar, bootstrap)
+# La ingesta de miniF2F no necesito `datasets`: es un JSONL, se baja con urllib.
 
 [build-system]
 requires = ["setuptools>=68"]

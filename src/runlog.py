@@ -52,6 +52,10 @@ class RunLog:
     def write(self, **fields) -> None:
         self._emit({"type": "call", "run_id": self.run_id, "config": self.config, **fields})
 
+    def event(self, **fields) -> None:
+        """Algo que paso y no es una llamada (p.ej. un lema alucinado). No cuenta en el RNF-3."""
+        self._emit({"type": "event", "run_id": self.run_id, "config": self.config, **fields})
+
     def result(self, **fields) -> None:
         self._emit({"type": "result", "run_id": self.run_id, "config": self.config, **fields})
 
@@ -67,7 +71,7 @@ def summarize(path: str | Path) -> dict:
     solved = sum(r["solved"] for r in results)
     cost = sum(c.get("cost_usd", 0) for c in calls)
     solved_calls = [r["llm_calls"] for r in results if r["solved"]]
-    return {
+    out = {
         "problems": n,
         "solved": solved,
         "solve_rate": round(solved / n, 4) if n else 0.0,
@@ -78,6 +82,10 @@ def summarize(path: str | Path) -> dict:
         "cost_usd": round(cost, 4),
         "cost_per_problem_usd": round(cost / n, 4) if n else 0.0,
     }
+    sk = [r["skeleton_ok"] for r in results if "skeleton_ok" in r]
+    if sk:  # compuerta de semana 6: esqueletos que compilan con sus sorries
+        out["skeleton_ok_rate"] = round(sum(sk) / len(sk), 4)
+    return out
 
 
 if __name__ == "__main__":

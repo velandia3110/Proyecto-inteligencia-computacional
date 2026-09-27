@@ -17,11 +17,12 @@ import traceback
 from pathlib import Path
 
 from src import data
+from src.agents import plan_only
 from src.baselines import Ctx, baseline_a, baseline_b
 from src.budget import BudgetExhausted
 from src.runlog import RunLog, summarize
 
-CONFIGS = {"baseline_a": baseline_a, "baseline_b": baseline_b}
+CONFIGS = {"baseline_a": baseline_a, "baseline_b": baseline_b, "plan_only": plan_only}
 
 
 def make_backends() -> dict:

@@ -166,6 +166,99 @@ def test_runner_no_abre_test():
     raise AssertionError("el runner abrio el test set sin --abrir-test")
 
 
+# --- semana 5-6: planificador, generador, recuperador ---------------------------
+
+def _plan_json(skeleton, subgoals):
+    return json.dumps({"theorem_name": "t", "skeleton": skeleton, "subgoals": subgoals,
+                       "rationale": "r"})
+
+
+GOOD_SK = f"{FS} := by\n  have s1 : x = 4 / 2 := by sorry\n  linarith"
+GOOD_SG = [{"name": "s1", "statement": "x = 4 / 2", "depends_on": []}]
+
+
+def test_planner_ok_a_la_primera():
+    from src.agents import plan_and_check
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmp:
+        c = ctx(llm_claude=FakeLLM(_plan_json(GOOD_SK, GOOD_SG)), tmp=tmp)
+        planned, verdict = plan_and_check(c)
+        assert verdict == "OK" and planned["subgoals"][0]["name"] == "s1"
+        assert c.budget.used == 1
+
+
+def test_planner_que_cambia_el_enunciado_replanifica():
+    from src.agents import plan_and_check
+    bad = GOOD_SK.replace("x = 2 :=", "x = 3 :=")
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmp:
+        claude = FakeLLM(_plan_json(bad, GOOD_SG), _plan_json(GOOD_SK, GOOD_SG))
+        c = ctx(llm_claude=claude, tmp=tmp)
+        planned, verdict = plan_and_check(c)
+        assert verdict == "OK" and c.budget.used == 2
+        assert "cambio el enunciado" in claude.seen[1]  # el error llego al reintento
+
+
+def test_planner_se_rinde_tras_un_replan():
+    from src.agents import plan_and_check
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmp:
+        c = ctx(llm_claude=FakeLLM("no hay json", "tampoco"), tmp=tmp)
+        planned, verdict = plan_and_check(c)
+        assert planned is None and verdict == "PLANNING_ERROR" and c.budget.used == 2
+
+
+def test_planner_sorry_extra_es_invalido():
+    from src.agents import AgentError, plan
+    sk = GOOD_SK.replace("  linarith", "  sorry")
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmp:
+        c = ctx(llm_claude=FakeLLM(_plan_json(sk, GOOD_SG)), tmp=tmp)
+        try:
+            plan(c)
+        except AgentError as e:
+            assert "fuera de los subobjetivos" in str(e)
+            return
+    raise AssertionError("un sorry en la tactica final paso como plan valido")
+
+
+def test_voto_y_lemas_inventados():
+    from src.agents import generate, vote
+    assert vote([{"tactic_hints": ["linarith"]}, {"tactic_hints": ["nlinarith [sq_nonneg x]"]},
+                 {"tactic_hints": ["linarith", "norm_num"]}])[0] == 0
+    lemmas = "- `mul_pos` : 0 < a → 0 < b → 0 < a * b"
+    sk = lambda uses: json.dumps({"steps": ["a"], "tactic_hints": ["linarith"], "uses_lemmas": uses})
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmp:
+        c = ctx(llm_claude=FakeLLM(sk(["mul_pos", "Real.inventado"]), sk([])), tmp=tmp)
+        out = generate(c, GOOD_SG[0], [], lemmas=lemmas, n=2)
+        assert out["sketches"][0]["uses_lemmas"] == ["mul_pos"]
+        assert out["agreement"] == 1.0 and c.budget.used == 2
+        c.log.close()
+        rows = [json.loads(l) for l in open(c.log.path, encoding="utf-8")]
+        assert [r["lemmas"] for r in rows if r["type"] == "event"] == [["Real.inventado"]]
+        assert summarize(c.log.path)["llm_calls"] == 2  # el evento no cuenta como llamada
+
+
+def test_recuperador_coseno_exacto():
+    import numpy as np
+    from src.retriever import Retriever, format_lemmas
+
+    class Enc:  # bolsa de palabras normalizada: suficiente para probar el cableado
+        name = "fake"
+        vocab = ["mul", "pos", "add", "comm", "sq", "nonneg"]
+
+        def encode(self, texts):
+            v = np.array([[t.count(w) for w in self.vocab] for t in texts], dtype="float32")
+            return v / np.maximum(np.linalg.norm(v, axis=1, keepdims=True), 1e-9)
+
+    names = ["mul_pos", "add_comm", "sq_nonneg"]
+    enc = Enc()
+    r = Retriever(names, ["0 < a * b", "a + b = b + a", "0 ≤ a ^ 2"], ["", "", ""],
+                  enc.encode(names), enc)
+    out = r.search("sq nonneg", k=2)
+    from src.llm import validate
+    validate("retriever", out)
+    assert out["lemmas"][0]["name"] == "sq_nonneg" and abs(out["lemmas"][0]["score"] - 1) < 1e-5
+    from src.agents import _lemma_names
+    assert _lemma_names(format_lemmas(out)) == {"sq_nonneg", out["lemmas"][1]["name"]}
+
+
 if __name__ == "__main__":
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     for t in tests:

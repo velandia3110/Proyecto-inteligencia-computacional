@@ -143,7 +143,9 @@ class Prover:
     para que vLLM aplique la plantilla de chat del modelo)."""
 
     def __init__(self, url: str | None = None, model: str = "Goedel-LM/Goedel-Prover-V2-8B",
-                 temperature: float = 0.6, max_tokens: int = 8192):
+                 temperature: float = 0.6, max_tokens: int = 32768):
+        # 32K de salida es el modo estandar del paper (plan + prueba). Con menos se corta el
+        # razonamiento antes del bloque lean4. vLLM: --max-model-len 40960.
         self.url = (url or os.environ["PROVER_URL"]).rstrip("/") + "/v1/chat/completions"
         self.model = model
         self.temperature = temperature
