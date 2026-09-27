@@ -1,6 +1,6 @@
 # Estado del proyecto
 
-Actualizado: 2026-09-27 · Semanas 1–4 cerradas en lo que depende de nosotros, la corrida real de las líneas base espera la clave del API y el prover.
+Actualizado: 2026-09-27 · Semanas 1–6 cerradas en lo que depende de nosotros, lo que falta necesita la clave del API y el prover servido.
 
 ## Semanas 1–2
 
@@ -43,11 +43,35 @@ docker run --rm -v "$PWD:/work" -w /work -e ANTHROPIC_API_KEY -e PROVER_URL \
   mathagents-lean:v4.15.0 python3 run.py --config baseline_a
 ```
 
+## Semanas 5–6: planificador, generador y recuperador
+
+Compuerta: los esqueletos compilan en más del 70% de dev, y hay curva recall@k para k ∈ {5, 10, 20}.
+
+| Condición | Estado | Evidencia |
+|---|---|---|
+| Planificador con esqueleto y `VERIFY_SKELETON` | ✅ código · ⏳ tasa en dev | `src/agents.py`, config `plan_only` |
+| Generador con n bocetos y voto | ✅ | `src/agents.py`, `tests/test_pipeline.py` |
+| Corpus de premisas del mismo commit de Mathlib | ✅ 252.002 teoremas, 179.269 tras quitar autogenerados | `lean/Extract.lean`, 23 min en Docker |
+| Índice FAISS exacto sobre BGE-M3 | ✅ 179.269 × 1024, normalizado | `python -m src.retriever build`, ~34 min en la GPU de 4 GB |
+| Curva recall@k | ✅ ver tabla | `python -m src.retriever recall 5 10 20 50` |
+| Esqueletos compilan en >70% de dev | ⏳ | necesita la clave del API |
+
+El planificador no entrega una lista en prosa sino un teorema en Lean con un `have ... := by sorry` por paso, y antes de seguir se revisan tres cosas: que no haya cambiado el enunciado, que cada subobjetivo esté de verdad en el esqueleto y que no haya `sorry` escondidos en otra parte (por ejemplo en la táctica final, que haría trampa). Después el kernel lo compila con los `sorry` permitidos y si pasa, los pasos implican el teorema. Si algo falla se replanifica una sola vez con el error pegado en el prompt. Un detalle que salió al escribirlo es que el enunciado de cada paso se toma del texto del esqueleto y no del JSON, porque es el esqueleto lo que el kernel revisó y los dos podían no coincidir.
+
+En el generador, cuando el modelo cita un lema que no estaba en la lista que se le dio, ese nombre se quita y queda anotado en el log como evento, así se puede contar después cuántas alucinaciones de nombres hubo sin que eso infle el conteo de llamadas.
+
+**Recall@k** sobre 1.000 teoremas de Mathlib al azar (semilla 0). La consulta es el tipo del teorema y lo relevante son los teoremas que aparecen en su prueba.
+
+| k | 5 | 10 | 20 | 50 |
+|---|---|---|---|---|
+| recall@k | 0,173 | 0,224 | 0,287 | 0,362 |
+
+Los números son bajos, y conviene decirlo tal cual. En una prueba a mano se vio de dónde sale buena parte del problema: si la consulta trae un nombre (`Nat.Prime p → 2 ≤ p`) el lema exacto sale primero con 0,85, pero si la consulta es puro símbolo (`0 ≤ x ^ 2`, `a * b = 0 → a = 0 ∨ b = 0`) los lemas obvios como `sq_nonneg` o `mul_eq_zero` ni siquiera salen en el top 5. Como el texto indexado empieza por el nombre del lema, el codificador se apoya mucho en los nombres. Además la verdad de referencia es ruidosa, porque el término de prueba trae también lo que las tácticas meten por dentro y que nadie escribiría a mano. Con esta curva el k razonable está entre 10 y 20, el costo es solo largo de prompt, y la decisión final se toma en la semana 9 viendo si el RAG sube la tasa de resolución, que es lo que importa. Una mejora barata para probar ahí es consultar con el paso en lenguaje natural del generador además del tipo.
+
 ## Reparto y compuertas siguientes
 
 | Semana | Entregable | Compuerta |
 |---|---|---|
-| 5–6 | Planificador con esqueleto + Generador, corpus y FAISS | esqueletos compilan en >70% de dev; curva recall@k para k ∈ {5,10,20} |
 | 7–8 | Autoformalizador, `ASSEMBLE`, pool de REPLs, CI | un problema entra y sale veredicto del kernel, sin RAG ni Crítico |
 | 9 | RAG + Crítico | las 5 configuraciones son invocables por bandera |
 | 10 | Test set 40–60, dataset card | prompts CONGELADOS |
@@ -59,9 +83,9 @@ docker run --rm -v "$PWD:/work" -w /work -e ANTHROPIC_API_KEY -e PROVER_URL \
 
 ## Deuda declarada
 
-- Las líneas base no se han corrido sobre dev, falta clave del API y el prover servido (ver arriba). Es lo primero que hay que hacer cuando estén.
+- Las líneas base y la tasa de esqueletos no se han medido sobre dev, falta clave del API y el prover servido. Es lo primero que hay que hacer cuando estén.
+- El recall@k es bajo con consultas de puro símbolo, ver semanas 5–6.
 - PutnamBench no se ingirió. Es el benchmark secundario y sus enunciados traen definiciones de solución (`abbrev ..._solution`) que hay que manejar aparte, se deja para la semana 10 cuando se arme el test set.
 - `docs/references.bib` no existe. Las 27 entradas de `related-work.md` están escritas de memoria, hay que auditar venue, año y DOI contra la fuente antes de citarlas.
 - Referencia del informe del MIT sin identificar (`related-work.md` eje 7).
-- `decisions.md` D2 afirma que Goedel-Prover-V2 permite desactivar la autocorrección interna, verificarlo antes de la semana 7.
 - El caso `TIMEOUT` no se ha probado contra el kernel real, solo con respuesta fabricada.
