@@ -123,6 +123,15 @@ def test_syntax_error():
     assert verify(CODE, repl, theorem_name="t").verdict == "SYNTAX_ERROR"
 
 
+def test_sintaxis_lean3_no_es_lema_faltante():
+    # Mensaje literal del kernel real para `begin ... end`.
+    repl = FakeRepl(ReplResult(raw="{}", messages=[
+        err("unknown identifier 'begin'"), err("invalid 'end', insufficient scopes")]))
+    v = verify(CODE, repl, theorem_name="t")
+    assert v.verdict == "SYNTAX_ERROR", v.verdict
+    assert v.missing_identifiers == []
+
+
 def test_timeout():
     repl = FakeRepl(ReplResult(raw="<timeout>", timed_out=True))
     assert verify(CODE, repl, theorem_name="t").verdict == "TIMEOUT"

@@ -9,7 +9,7 @@ Cambiar cualquier fila cuesta semanas. Cambio → nueva fila en *Historial*, nun
 |---|---|---|---|
 | D1.1 | Orquestador | **LangGraph** | Estado tipado + checkpoints. El grafo es un entregable visible (15% arquitectura); CrewAI lo oculta tras roles. |
 | D1.2 | Interfaz Lean | `leanprover-community/repl` (cliente JSON propio, ver nota) | LeanDojo exige crear/tracear un repo Lean por interacción; el REPL acepta código suelto y permite sesiones vivas. |
-| D1.3 | Mathlib | Commit **fijo** + `lake exe cache get` en el build de Docker | Compilar Mathlib desde fuente son horas de CPU por imagen. |
+| D1.3 | Mathlib | Commit **fijo** `9837ca9d65d9de6fad1ef4381750ca688774e608` (tag v4.15.0) + `lake exe cache get` en el build de Docker | Compilar Mathlib desde fuente son horas de CPU por imagen. El hash sale de `/app/mathlib-commit.txt`, no se escribió a mano. |
 | D1.4 | LLM planificación/crítica | Modelo de frontera vía API (`claude-opus-5`) | 1–2 llamadas por problema; el costo marginal es irrelevante frente a la calidad del plan. |
 | D1.5 | LLM formalización | **Goedel-Prover-V2-8B** (Apache-2.0) | Es el volumen de llamadas. 84.6% pass@32 en miniF2F siendo ~80× menor que DeepSeek-Prover-V2-671B. Self-hosted = costo marginal ≈ 0. |
 | D1.6 | Embeddings | **BGE-M3** + FAISS `IndexFlatIP` | Local, sin costo por llamada. Vectores L2-normalizados ⇒ producto interno = coseno (ver `docs/design-document.md` §4). |
@@ -90,3 +90,8 @@ Se justifica en la sección *Methodology* del informe.
 | Fecha | Decisión | Cambio | Motivo |
 |---|---|---|---|
 | 2026-09-20 | — | Congelado inicial | — |
+| 2026-09-27 | D1.2 | El REPL se clona en el tag `v4.15.0` y se lanza con `lake env` | El master del REPL va con un Lean más nuevo, y sin `lake env` el REPL no encontraba ni el prelude, el `import Mathlib` pasaba callado sin cargar nada. Salió al correr la compuerta D4. |
+| 2026-09-27 | D1.4 | Sin `temperature` en las llamadas a claude-opus-5 | El modelo ya no acepta ese parámetro (da error 400). Las temperaturas de los prompts v0 quedan como dato histórico, la variedad entre bocetos del Generador sale del muestreo normal del modelo. |
+| 2026-09-27 | D1.5 | Autoformalizador pasa a `prompts/autoformalizer.v1.md` con el formato de entrenamiento de Goedel-Prover | El v0 le pedía JSON a un prover que no fue entrenado para eso. Ahora el subobjetivo va como lema suelto y el JSON del contrato lo arma el código. |
+| 2026-09-27 | §8.2 | La línea base A usa Goedel-Prover (el mismo formalizador del sistema), una llamada, prueba completa | Así la comparación contra el sistema mide la arquitectura y no un cambio de modelo. |
+| 2026-09-27 | datos | `maxHeartbeats 400000` en vez de `0` en el encabezado de miniF2F | Con 0 un `simp` que no termina cuelga el proceso en vez de dar `TIMEOUT`. |

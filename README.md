@@ -5,7 +5,7 @@ de razonamiento, RAG sobre Mathlib) y **verificación rígida** (kernel de Lean 
 cuenta como resuelto **solo** si el kernel acepta la prueba: sin `sorry` y sin axiomas fuera del
 núcleo.
 
-Estado: **semanas 1–2 completadas** (fundamentación y diseño). Ver `docs/status.md`.
+Estado: **semanas 1–4**, diseño, entorno Lean funcionando, líneas base y runner. Ver `docs/status.md`.
 
 ## Documentación
 
@@ -30,10 +30,21 @@ docker build -t mathagents-lean:v4.15.0 lean/
 # 3. Compuerta del dia 5 de la semana 1
 docker run --rm -v "$PWD/src:/app/src" mathagents-lean:v4.15.0 \
   python3 -m src.verify --smoke
+
+# 4. Veredictos contra el kernel real y una prueba de punta a punta
+docker run --rm -v "$PWD:/work" -w /work mathagents-lean:v4.15.0 python3 tests/test_kernel.py
+
+# 5. Una corrida (necesita ANTHROPIC_API_KEY y/o PROVER_URL segun la config)
+docker run --rm -v "$PWD:/work" -w /work -e ANTHROPIC_API_KEY -e PROVER_URL \
+  mathagents-lean:v4.15.0 python3 run.py --config baseline_a --limit 10
+python -m src.runlog runs/<run_id>.jsonl
 ```
 
-El paso 3 debe imprimir `veredicto=OK ... PASA`. Si no corre, se para y se renegocia el alcance
-(`docs/decisions.md` §D4).
+El paso 3 debe imprimir `veredicto=OK ... PASA` (ya pasa, desde la semana 3). Las pruebas que no
+necesitan Docker ni API son `python tests/test_verify.py && python tests/test_pipeline.py`.
+
+El prover (Goedel-Prover-V2-8B) no corre en una GPU chica, se sirve afuera con vLLM y se le pasa
+la URL: `vllm serve Goedel-LM/Goedel-Prover-V2-8B` y `PROVER_URL=http://<host>:8000`.
 
 ## Por qué siete veredictos y no "compila / no compila"
 

@@ -37,16 +37,17 @@ RUN git -C .lake/packages/mathlib rev-parse HEAD > /app/mathlib-commit.txt \
  && cat /app/mathlib-commit.txt
 
 # REPL: proceso de larga vida que acepta codigo Lean por stdin en JSON.
-# Se fija al mismo toolchain que el proyecto; si divergen, el REPL no carga Mathlib.
+# Se fija al mismo tag que el toolchain: el master del REPL va con un Lean mas nuevo
+# y no compila con v4.15.0. Si divergen, el REPL tampoco carga Mathlib.
 WORKDIR /app/repl
-RUN git clone --depth 1 https://github.com/leanprover-community/repl.git . \
+RUN git clone --depth 1 --branch ${LEAN_VERSION} https://github.com/leanprover-community/repl.git . \
  && cp /app/mathproj/lean-toolchain . \
  && lake build
 
 # El codigo Python se monta en runtime (-v "$PWD/src:/app/src"), no se hornea en la
 # imagen: cambia a diario y reconstruir por eso costaria el cache de Mathlib.
 WORKDIR /app
-RUN pip3 install --break-system-packages --no-cache-dir jsonschema
+RUN pip3 install --break-system-packages --no-cache-dir jsonschema "anthropic>=0.40" "langgraph>=0.2"
 
 ENV PYTHONPATH=/app
 ENV LEAN_PROJECT_DIR=/app/mathproj

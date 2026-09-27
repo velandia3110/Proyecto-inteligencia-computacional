@@ -81,6 +81,12 @@ _PATTERNS: list[tuple[str, re.Pattern[str]]] = [
 ]
 
 
+# Palabras de Lean 3 que Lean 4 reporta como "unknown identifier". Visto contra el
+# kernel real (tests/test_kernel.py): sin esto, `begin ... end` se clasificaba como
+# lema faltante y se iba a buscar mas lemas en vez de corregir la sintaxis.
+_LEAN3_WORDS = frozenset({"begin", "assume"})
+
+
 def classify(errors: list[str]) -> str:
     """Mapea los mensajes de error de Lean a la taxonomia de la seccion 8.3.
 
@@ -89,6 +95,8 @@ def classify(errors: list[str]) -> str:
     if not errors:
         return "SYNTAX_ERROR"
     first = errors[0]
+    if set(_UNKNOWN_ID.findall(first)) & _LEAN3_WORDS:
+        return "SYNTAX_ERROR"
     for verdict, pattern in _PATTERNS:
         if pattern.search(first):
             return verdict
@@ -102,7 +110,7 @@ def missing_identifiers(errors: list[str]) -> list[str]:
     found: list[str] = []
     for err in errors:
         for name in _UNKNOWN_ID.findall(err):
-            if name not in found:
+            if name not in found and name not in _LEAN3_WORDS:
                 found.append(name)
     return found
 
@@ -182,15 +190,19 @@ def verify(
 
 def _smoke() -> int:
     """Compuerta del dia 5 de la semana 1 (decisions.md D4). Requiere la imagen Docker."""
-    from src.lean_repl import LeanRepl
+    from src.lean_repl import ReadyRepl
 
-    with LeanRepl() as repl:
-        repl.run("import Mathlib", timeout=300)
+    # Ojo: cada comando del REPL sin `env` arranca de un entorno vacio. Hay que
+    # verificar sobre el entorno donde quedo cargado Mathlib; ReadyRepl hace eso.
+    repl = ReadyRepl("import Mathlib")
+    try:
         v = verify(
             "theorem smoke_test : 2 + 2 = 4 := by norm_num",
             repl,
             theorem_name="smoke_test",
         )
+    finally:
+        repl.close()
     print(f"veredicto={v.verdict} axiomas={v.axioms} {v.elapsed_ms} ms")
     print("PASA" if v.ok else f"FALLA\n{v.raw}")
     return 0 if v.ok else 1

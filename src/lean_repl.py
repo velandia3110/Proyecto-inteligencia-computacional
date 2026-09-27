@@ -57,8 +57,10 @@ class LeanRepl:
         )
         self.project_dir = project_dir or os.environ.get("LEAN_PROJECT_DIR", "/app/mathproj")
         self._lock = threading.Lock()
+        # `lake env` pone el LEAN_PATH del proyecto. Sin el, el REPL no encuentra ni el
+        # prelude y el `import Mathlib` "funciona" en silencio sin cargar nada.
         self._proc = subprocess.Popen(
-            [self.repl_bin],
+            ["lake", "env", self.repl_bin],
             cwd=self.project_dir,
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
@@ -75,7 +77,9 @@ class LeanRepl:
 
         with self._lock:
             try:
-                out = self._exchange(json.dumps(payload), timeout)
+                # ensure_ascii=False: el REPL no decodifica los pares sustitutos (\ud835...)
+                # y un `𝓝` escapado da "expected token". Visto en mathd_algebra_31.
+                out = self._exchange(json.dumps(payload, ensure_ascii=False), timeout)
             except subprocess.TimeoutExpired:
                 # El REPL queda en estado indefinido tras un timeout: se recicla.
                 self.close()
@@ -121,8 +125,41 @@ class LeanRepl:
             self._proc.kill()
             self._proc.wait(timeout=5)
 
+    @property
+    def alive(self) -> bool:
+        return self._proc.poll() is None
+
     def __enter__(self) -> "LeanRepl":
         return self
 
     def __exit__(self, *exc: object) -> None:
         self.close()
+
+
+class ReadyRepl:
+    """REPL con el encabezado comun (import Mathlib + opens) ya cargado.
+
+    Cada `run` sin `env` corre sobre el entorno del encabezado, asi los problemas no
+    se ven entre si. Si un timeout mato el proceso, se levanta otro en la siguiente
+    llamada (cuesta la recarga de Mathlib, pero no tumba la corrida).
+    """
+
+    def __init__(self, header: str, **kw):
+        self.header = header
+        self.kw = kw
+        self._spawn()
+
+    def _spawn(self) -> None:
+        self.repl = LeanRepl(**self.kw)
+        r = self.repl.run(self.header, timeout=600)
+        if r.has_errors or r.env is None:
+            raise RuntimeError(f"el encabezado no carga: {r.raw[:500]}")
+        self.base_env = r.env
+
+    def run(self, cmd: str, env: int | None = None, timeout: float = 120.0) -> ReplResult:
+        if not self.repl.alive:
+            self._spawn()
+        return self.repl.run(cmd, env=self.base_env if env is None else env, timeout=timeout)
+
+    def close(self) -> None:
+        self.repl.close()
