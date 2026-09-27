@@ -1,4 +1,4 @@
-"""Planificador y Generador (RF-1, RF-2).
+"""Planificador, Generador y Autoformalizador (RF-1, RF-2, RF-4).
 
 Cada agente: llama al LLM por `llm.call` (presupuesto + log), parsea, valida
 contra su contrato y devuelve el objeto del contrato. Si la salida no cumple, se
@@ -10,7 +10,9 @@ from __future__ import annotations
 
 import re
 
-from src.lean_text import split_statement, statement_preserved
+from src.data import HEADER
+from src.lean_text import (extract_lean_block, split_statement, statement_preserved,
+                            subgoal_lemma, tactic_body)
 from src.llm import call, load_prompt, parse_json, validate
 from src.verify import Verdict, verify
 
@@ -146,3 +148,39 @@ def plan_only(ctx) -> dict:
     return {"verdict": verdict, "solved": False, "skeleton_ok": planned is not None,
             "n_subgoals": len(planned["subgoals"]) if planned else 0,
             "skeleton": planned["skeleton"] if planned else None}
+
+
+# --- Autoformalizador ----------------------------------------------------------
+
+def formalize(ctx, subgoal: dict, prev: list[tuple[str, str]], sketch: dict,
+              lemmas: str = NO_LEMMAS, retry_block: str = "") -> dict:
+    """Boceto -> tacticas. El prover ve el subobjetivo como lema suelto; el codigo saca
+    las tacticas y arma el JSON del contrato (prompts/autoformalizer.v1.md)."""
+    lemma_stmt = subgoal_lemma(ctx.problem["formal_statement"], prev, subgoal["name"],
+                               subgoal["statement"])
+    r = call(ctx, "autoformalizer", "autoformalizer.v1", header=HEADER.strip(),
+             sketch_steps="\n".join(f"{i}. {s}" for i, s in enumerate(sketch["steps"], 1))
+             .replace("-/", "- /"),
+             tactic_hints=", ".join(sketch.get("tactic_hints", [])) or "-",
+             retrieved_lemmas=lemmas.replace("\n", " "), subgoal_lemma=lemma_stmt,
+             retry_block=retry_block)
+    block = extract_lean_block(r.text)
+    body = tactic_body(block) if block else None
+    if body is None:
+        out = {"subgoal_name": subgoal["name"], "ok": False,
+               "failure_reason": "el prover no devolvio un bloque lean4 con `:= by`"}
+    elif re.search(r"\b(sorry|admit)\b", body):
+        out = {"subgoal_name": subgoal["name"], "ok": False,
+               "failure_reason": "la prueba usa sorry/admit"}
+    else:
+        out = {"subgoal_name": subgoal["name"], "ok": True, "proof": body}
+    out = _checked("autoformalizer", out)
+    out["_lemma"] = lemma_stmt  # para verificar el subobjetivo aislado; no es del contrato
+    return out
+
+
+def verify_subgoal(ctx, formalized: dict) -> Verdict:
+    """El subobjetivo como lema suelto, con los siete veredictos (incluye AXIOM)."""
+    name = formalized["_lemma"].split()[1]
+    body = "\n".join("  " + l for l in formalized["proof"].splitlines())
+    return verify(f"{formalized['_lemma']} := by\n{body}", ctx.repl, theorem_name=name)

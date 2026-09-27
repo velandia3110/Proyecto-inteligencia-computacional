@@ -5,7 +5,7 @@ de razonamiento, RAG sobre Mathlib) y **verificación rígida** (kernel de Lean 
 cuenta como resuelto **solo** si el kernel acepta la prueba: sin `sorry` y sin axiomas fuera del
 núcleo.
 
-Estado: **semanas 1–4**, diseño, entorno Lean funcionando, líneas base y runner. Ver `docs/status.md`.
+Estado: **semanas 1–8**, el grafo completo corre de punta a punta contra el kernel real (con LLM falso), falta correrlo con los modelos de verdad. Ver `docs/status.md`.
 
 ## Documentación
 
@@ -41,7 +41,7 @@ python -m src.runlog runs/<run_id>.jsonl
 ```
 
 El paso 3 debe imprimir `veredicto=OK ... PASA` (ya pasa, desde la semana 3). Las pruebas que no
-necesitan Docker ni API son `python tests/test_verify.py && python tests/test_pipeline.py`.
+necesitan Docker ni API son `test_verify.py`, `test_pipeline.py` y `test_graph.py`; las del kernel real son `test_kernel.py` y `test_kernel_pool.py` (en Docker).
 
 El prover (Goedel-Prover-V2-8B) no corre en una GPU chica, se sirve afuera con vLLM y se le pasa
 la URL: `vllm serve Goedel-LM/Goedel-Prover-V2-8B` y `PROVER_URL=http://<host>:8000`.

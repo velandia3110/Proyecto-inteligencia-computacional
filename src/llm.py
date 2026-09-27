@@ -180,7 +180,14 @@ def call(ctx, agent: str, prompt_name: str, **vals: str) -> Reply:
     backend = backend_for(p.meta, ctx.backends)
     ctx.budget.spend(agent)  # antes de llamar: si no cabe, no se paga
     system, user = p.render(**vals)
-    reply = backend.complete(system, user)
+    try:
+        reply = backend.complete(system, user)
+    except Exception as e:
+        # Se gasto presupuesto, entonces tambien queda en el log: si no, el resumen y el
+        # conteo por problema del RNF-3 no cuadran.
+        ctx.log.write(problem_id=ctx.problem_id, agent=agent, attempt=ctx.attempt,
+                      prompt=prompt_name, error=f"{type(e).__name__}: {e}"[:500], cost_usd=0)
+        raise
     ctx.log.write(
         problem_id=ctx.problem_id, agent=agent, attempt=ctx.attempt, model=reply.model,
         prompt=prompt_name, prompt_tokens=reply.prompt_tokens,

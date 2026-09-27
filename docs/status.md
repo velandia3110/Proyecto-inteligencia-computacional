@@ -1,6 +1,6 @@
 # Estado del proyecto
 
-Actualizado: 2026-09-27 · Semanas 1–6 cerradas en lo que depende de nosotros, lo que falta necesita la clave del API y el prover servido.
+Actualizado: 2026-09-27 · Semanas 1–8 cerradas en lo que depende de nosotros, lo que falta necesita la clave del API y el prover servido.
 
 ## Semanas 1–2
 
@@ -68,18 +68,53 @@ En el generador, cuando el modelo cita un lema que no estaba en la lista que se 
 
 Los números son bajos, y conviene decirlo tal cual. En una prueba a mano se vio de dónde sale buena parte del problema: si la consulta trae un nombre (`Nat.Prime p → 2 ≤ p`) el lema exacto sale primero con 0,85, pero si la consulta es puro símbolo (`0 ≤ x ^ 2`, `a * b = 0 → a = 0 ∨ b = 0`) los lemas obvios como `sq_nonneg` o `mul_eq_zero` ni siquiera salen en el top 5. Como el texto indexado empieza por el nombre del lema, el codificador se apoya mucho en los nombres. Además la verdad de referencia es ruidosa, porque el término de prueba trae también lo que las tácticas meten por dentro y que nadie escribiría a mano. Con esta curva el k razonable está entre 10 y 20, el costo es solo largo de prompt, y la decisión final se toma en la semana 9 viendo si el RAG sube la tasa de resolución, que es lo que importa. Una mejora barata para probar ahí es consultar con el paso en lenguaje natural del generador además del tipo.
 
+## Semanas 7–8: autoformalizador, ensamblado, pool de REPLs y CI
+
+Compuerta: un problema entra y sale veredicto del kernel, sin RAG ni Crítico.
+
+| Condición | Estado | Evidencia |
+|---|---|---|
+| Autoformalizador con Goedel-Prover, sin autocorrección (D2) | ✅ | `src/agents.py`, `prompts/autoformalizer.v1.md` |
+| Grafo completo en LangGraph (config `agents_only`) | ✅ | `src/graph.py`, 7/7 en `tests/test_graph.py` |
+| `ASSEMBLE` + `VERIFY_FINAL` | ✅ | `src/lean_text.py`, solo `VERIFY_FINAL` da SOLVED |
+| **Compuerta: un problema entra y sale veredicto del kernel** | ✅ con LLM falso | `tests/test_kernel.py`: `mathd_algebra_48` resuelto por el kernel real |
+| Pool de REPLs y `--workers` | ✅ | `src/repl_pool.py`, `tests/test_kernel_pool.py` |
+| `TIMEOUT` contra el kernel real | ✅ | `tests/test_kernel_pool.py` |
+| CI | ✅ | `.github/workflows/ci.yml` |
+| Corrida con LLM de verdad | ⏳ | clave del API y prover |
+
+La compuerta se cerró pasando un problema real de dev por todo el grafo, con respuestas del LLM puestas a mano pero con el kernel de verdad decidiendo. El planificador parte `mathd_algebra_48` en un paso, el kernel acepta el esqueleto con su `sorry`, el paso se prueba como lema suelto, se pega en el esqueleto y el kernel acepta el teorema completo:
+
+```lean
+theorem mathd_algebra_48 (q e : ℂ) (h₀ : q = 9 - 4 * Complex.I) (h₁ : e = -3 - 4 * Complex.I) :
+  q - e = 12 := by
+  have step1 : q - e = (9 - 4 * Complex.I) - (-3 - 4 * Complex.I) := by
+    rw [h₀, h₁]
+  rw [step1]
+  ring
+```
+
+También está el caso contrario, una prueba mala dos veces seguidas (con el reintento incluido) termina en `UNSOLVED_GOALS` y no en resuelto. Lo que falta para que la compuerta cuente con modelos de verdad es lo mismo de siempre, la clave y el prover, pero el camino por el que pasa un problema ya está probado de punta a punta.
+
+Sin Crítico, cuando un paso falla se vuelve a intentar a ciegas, con bocetos nuevos pero sin mostrarle al modelo el error de Lean, y máximo dos intentos por paso. Se hizo así para que la ablación de la semana 9 mida lo que aporta leer el error y no lo que aporta simplemente volver a intentar (ver `decisions.md`).
+
+Probando el pool contra Lean real salieron dos errores más que con respuestas fabricadas no se veían. El primero, cuando Lean se muere por desbordamiento de pila (pasa con `decide` y un `maxRecDepth` alto) el REPL no responde nada y eso se estaba contando como error de sintaxis, ahora cuenta como `TIMEOUT` y el REPL se vuelve a levantar solo. El segundo, `lake env` lanza el REPL como proceso hijo, entonces al cortar por timeout se mataba a `lake` pero el REPL seguía vivo por debajo gastando CPU y hasta 3 GB de memoria, ahora se mata el grupo entero de procesos. Cada REPL comparte con los otros los ~3,9 GB de Mathlib mapeados desde disco y lo propio de cada uno son unos 0,3–0,4 GB, entonces con los 8 GB de Docker caben 2 o 3 trabajadores.
+
+Hay un dato sobre el límite de heartbeats que sirve para la semana 11: en esta máquina Lean gasta unos 20.000 heartbeats cada 7 a 12 segundos, entonces los 400.000 del encabezado tardan varios minutos y en la práctica el que corta siempre es el límite de 120 s de reloj.
+
+El CI corre en cada push las pruebas que no necesitan Lean ni API, y las del kernel real se lanzan a mano porque construir la imagen toma unos 20 minutos y varios GB.
+
 ## Reparto y compuertas siguientes
 
 | Semana | Entregable | Compuerta |
 |---|---|---|
-| 7–8 | Autoformalizador, `ASSEMBLE`, pool de REPLs, CI | un problema entra y sale veredicto del kernel, sin RAG ni Crítico |
 | 9 | RAG + Crítico | las 5 configuraciones son invocables por bandera |
 | 10 | Test set 40–60, dataset card | prompts CONGELADOS |
 | 11 | Experimentos | el test set se abre **una sola vez** |
 | 12 | Análisis y empaquetado | Wilson, McNemar, bootstrap; repo HF |
 | 13 | Informe IMRaD + sustentación | ~8.000 palabras |
 
-**Punto de corte:** si el pipeline end-to-end no corre al final de la semana 8, el RAG se recorta a extensión declarada y la ablación corre con 4 configuraciones.
+**Punto de corte:** si el pipeline end-to-end no corre al final de la semana 8, el RAG se recorta a extensión declarada y la ablación corre con 4 configuraciones. El pipeline sí corre de punta a punta contra el kernel, así que por código no se activa, pero si la clave y el prover no llegan pronto la semana 9 se queda sin datos reales para decidir.
 
 ## Deuda declarada
 
@@ -88,4 +123,3 @@ Los números son bajos, y conviene decirlo tal cual. En una prueba a mano se vio
 - PutnamBench no se ingirió. Es el benchmark secundario y sus enunciados traen definiciones de solución (`abbrev ..._solution`) que hay que manejar aparte, se deja para la semana 10 cuando se arme el test set.
 - `docs/references.bib` no existe. Las 27 entradas de `related-work.md` están escritas de memoria, hay que auditar venue, año y DOI contra la fuente antes de citarlas.
 - Referencia del informe del MIT sin identificar (`related-work.md` eje 7).
-- El caso `TIMEOUT` no se ha probado contra el kernel real, solo con respuesta fabricada.

@@ -13,6 +13,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from src.data import HEADER
 from src.lean_repl import ReadyRepl
+from src.runlog import RunLog
 from src.verify import verify
 
 CASES = [
@@ -32,7 +33,6 @@ def end_to_end(repl) -> bool:
     from src import data
     from src.baselines import Ctx, baseline_a
     from src.llm import Reply
-    from src.runlog import RunLog
 
     p = next(r for r in data.load("valid") if r["problem_id"] == "mathd_algebra_48")
 
@@ -48,6 +48,59 @@ def end_to_end(repl) -> bool:
     ok = out["verdict"] == "OK"
     print(f"  {'ok ' if ok else 'MAL'} E2E baseline_a  -> {out['verdict']}")
     return ok
+
+
+def graph_e2e(repl, tactic: str) -> dict:
+    """agents_only (grafo completo, sin RAG ni Critico) con LLMs falsos y el kernel real."""
+    import json
+    import tempfile
+
+    from src import data
+    from src.baselines import Ctx
+    from src.graph import agents_only
+    from src.lean_text import subgoal_lemma
+    from src.llm import Reply
+
+    p = next(r for r in data.load("valid") if r["problem_id"] == "mathd_algebra_48")
+    fs = p["formal_statement"]
+    st = "q - e = (9 - 4 * Complex.I) - (-3 - 4 * Complex.I)"
+    sk = f"{fs} := by\n  have step1 : {st} := by sorry\n  rw [step1]\n  ring"
+    plan = json.dumps({"theorem_name": p["theorem_name"], "skeleton": sk, "rationale": "r",
+                       "subgoals": [{"name": "step1", "statement": st, "depends_on": []}]})
+    sketch = json.dumps({"steps": ["sustituir q y e"], "tactic_hints": ["rw"], "uses_lemmas": []})
+    lemma = subgoal_lemma(fs, [], "step1", st)
+
+    class Fake:
+        def __init__(self, *texts):
+            self.texts = list(texts)
+
+        def complete(self, system, user, max_tokens=None):
+            return Reply(self.texts.pop(0), "fake", 1, 1, 1)
+
+    prover = Fake(*[f"```lean4\n{lemma} := by\n  {tactic}\n```"] * 2)
+    with tempfile.TemporaryDirectory() as tmp:
+        log = RunLog(Path(tmp) / "r.jsonl", "r", "agents_only", 0, {})
+        ctx = Ctx(problem=p, repl=repl, backends={"claude": Fake(plan, *[sketch] * 3),
+                                                   "prover": prover}, log=log)
+        out = agents_only(ctx)
+        log.close()
+    return out
+
+
+def graph_cases(repl) -> int:
+    fails = 0
+    out = graph_e2e(repl, "rw [h₀, h₁]")
+    ok = out["solved"] is True and out["verdict"] == "OK" and "sorry" not in out["proof"]
+    fails += not ok
+    print(f"  {'ok ' if ok else 'MAL'} E2E agents_only -> {out['verdict']}")
+    if not ok:
+        print(out)
+    # prueba mala dos veces (reintento a ciegas incluido) -> no resuelto
+    out = graph_e2e(repl, "linarith")
+    ok = not out["solved"] and out["verdict"] != "OK" and out["subgoals"][0]["attempts"] == 2
+    fails += not ok
+    print(f"  {'ok ' if ok else 'MAL'} E2E agents_only mala -> {out['verdict']}")
+    return fails
 
 
 def main() -> int:
@@ -69,9 +122,10 @@ def main() -> int:
         fails += v.verdict != "OK"
         print(f"  {'ok ' if v.verdict == 'OK' else 'MAL'} SKELETON        -> {v.verdict}")
         fails += not end_to_end(repl)
+        fails += graph_cases(repl)
     finally:
         repl.close()
-    total = len(CASES) + 2
+    total = len(CASES) + 4
     print(f"\n{total - fails}/{total} pasan")
     return 1 if fails else 0
 

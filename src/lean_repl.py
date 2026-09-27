@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import json
 import os
+import signal
 import subprocess
 import threading
 from dataclasses import dataclass, field
@@ -68,6 +69,7 @@ class LeanRepl:
             text=True,
             encoding="utf-8",
             bufsize=1,
+            start_new_session=True,  # grupo propio: close() mata lake y repl
         )
 
     def run(self, cmd: str, env: int | None = None, timeout: float = 120.0) -> ReplResult:
@@ -84,6 +86,13 @@ class LeanRepl:
                 # El REPL queda en estado indefinido tras un timeout: se recicla.
                 self.close()
                 return ReplResult(raw="<timeout>", timed_out=True)
+            if not out.strip():
+                # EOF: el proceso murio (visto con `decide` + maxRecDepth alto: desborda
+                # la pila). Se trata como TIMEOUT (agoto recursos), no como SYNTAX_ERROR,
+                # y se cierra ya para que `alive` no mienta en la siguiente llamada.
+                self.close()
+                return ReplResult(raw=f"<repl murio: codigo {self._proc.returncode}>",
+                                  timed_out=True)
 
         try:
             data = json.loads(out)
@@ -121,9 +130,17 @@ class LeanRepl:
         return result[0] if result else ""
 
     def close(self) -> None:
+        # `lake env` no hace exec: el repl es hijo de lake. Matar solo a lake dejaba el
+        # repl huerfano tras un timeout, quemando CPU y ~3 GB (visto en
+        # tests/test_kernel_pool.py). Se mata el grupo entero.
+        if hasattr(os, "killpg"):
+            try:
+                os.killpg(self._proc.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
         if self._proc.poll() is None:
             self._proc.kill()
-            self._proc.wait(timeout=5)
+        self._proc.wait(timeout=5)
 
     @property
     def alive(self) -> bool:
