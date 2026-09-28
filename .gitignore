@@ -2,6 +2,8 @@ __pycache__/
 *.pyc
 .venv/
 .env
+.doc
+.docx
 
 # Artefactos de Lean: los regenera el build de Docker, pesan GB
 lean/.lake/
