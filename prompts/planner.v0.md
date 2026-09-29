@@ -1,7 +1,7 @@
 ---
 agent: planner
 version: v0
-model: claude-opus-5
+model: qwen3:4b-instruct (Ollama)
 temperature: 0.2
 contract: docs/contracts/planner.schema.json
 ---

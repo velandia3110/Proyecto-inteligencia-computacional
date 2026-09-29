@@ -6,7 +6,6 @@ requires-python = ">=3.11"
 dependencies = [
     "jsonschema>=4.21",       # contratos RNF-4
     "langgraph>=0.2",         # orquestador (decisions.md D1.1)
-    "anthropic>=0.40",        # LLM de planificacion y critica (D1.4)
     "numpy>=1.26",            # vectores del recuperador
 ]
 

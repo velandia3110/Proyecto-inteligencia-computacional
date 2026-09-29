@@ -80,7 +80,7 @@ def graph_e2e(repl, tactic: str) -> dict:
     prover = Fake(*[f"```lean4\n{lemma} := by\n  {tactic}\n```"] * 2)
     with tempfile.TemporaryDirectory() as tmp:
         log = RunLog(Path(tmp) / "r.jsonl", "r", "agents_only", 0, {})
-        ctx = Ctx(problem=p, repl=repl, backends={"claude": Fake(plan, *[sketch] * 3),
+        ctx = Ctx(problem=p, repl=repl, backends={"llm": Fake(plan, *[sketch] * 3),
                                                    "prover": prover}, log=log)
         out = agents_only(ctx)
         log.close()

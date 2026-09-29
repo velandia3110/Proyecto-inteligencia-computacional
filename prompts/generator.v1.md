@@ -1,7 +1,7 @@
 ---
 agent: generator
 version: v1
-model: claude-opus-5
+model: qwen3:4b-instruct (Ollama)
 n_first_attempt: 2
 n_retry: 1
 contract: docs/contracts/generator.schema.json
@@ -9,7 +9,7 @@ contract: docs/contracts/generator.schema.json
 
 > Cambio respecto a v0: cada llamada devuelve UN boceto (v0 no lo dejaba claro) y el
 > codigo arma el objeto del contrato con los n bocetos y el voto. Sin `temperature`:
-> claude-opus-5 no la acepta.
+> la variedad entre bocetos sale del muestreo por defecto del modelo.
 
 # System
 

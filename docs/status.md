@@ -1,6 +1,6 @@
 # Estado del proyecto
 
-Actualizado: 2026-09-27 · Semanas 1–8 cerradas en lo que depende de nosotros, lo que falta necesita la clave del API y el prover servido.
+Actualizado: 2026-09-28 · Semanas 1–8 cerradas en lo que depende de nosotros. Planificador, Generador y Crítico pasaron a un modelo local con Ollama (`qwen3:4b-instruct`, costo 0); lo que falta es la corrida sobre dev y el prover servido.
 
 ## Semanas 1–2
 
@@ -36,10 +36,11 @@ Hay un chequeo que no estaba en el diseño y que resultó importante, antes de m
 
 La línea base B guarda lo que el modelo dijo de su propia prueba (`self_verdict`) y después la formaliza con una llamada al prover, así se puede contar cuántas veces el modelo dijo "correcta" y el kernel dijo que no, que es el dato de falsos positivos evitados que va en el abstract.
 
-**Lo que falta para cerrar la compuerta de verdad** es correr las dos líneas base sobre dev, y eso necesita dos cosas que esta máquina no tiene: una clave del API de Anthropic y el prover servido en algún lado. Goedel-Prover-V2-8B no cabe en la GPU de acá (4 GB), la idea es levantarlo con vLLM en Colab o en un endpoint de HF y pasar `PROVER_URL`. Con eso:
+**Lo que falta para cerrar la compuerta de verdad** es correr las dos líneas base sobre dev, y eso necesita Ollama corriendo con `qwen3:4b-instruct` (ya no hace falta clave de API) y el prover servido en algún lado. Goedel-Prover-V2-8B no cabe en la GPU de acá (4 GB), la idea es levantarlo con vLLM en Colab o en un endpoint de HF y pasar `PROVER_URL`. Con eso:
 
 ```bash
-docker run --rm -v "$PWD:/work" -w /work -e ANTHROPIC_API_KEY -e PROVER_URL \
+docker run --rm -v "$PWD:/work" -w /work --add-host=host.docker.internal:host-gateway \
+  -e OLLAMA_URL=http://host.docker.internal:11434 -e PROVER_URL \
   mathagents-lean:v4.15.0 python3 run.py --config baseline_a
 ```
 
@@ -54,7 +55,7 @@ Compuerta: los esqueletos compilan en más del 70% de dev, y hay curva recall@k 
 | Corpus de premisas del mismo commit de Mathlib | ✅ 252.002 teoremas, 179.269 tras quitar autogenerados | `lean/Extract.lean`, 23 min en Docker |
 | Índice FAISS exacto sobre BGE-M3 | ✅ 179.269 × 1024, normalizado | `python -m src.retriever build`, ~34 min en la GPU de 4 GB |
 | Curva recall@k | ✅ ver tabla | `python -m src.retriever recall 5 10 20 50` |
-| Esqueletos compilan en >70% de dev | ⏳ | necesita la clave del API |
+| Esqueletos compilan en >70% de dev | ⏳ | falta la corrida con Ollama; en la prueba de humo el esqueleto de qwen3:4b-instruct no traía la táctica final |
 
 El planificador no entrega una lista en prosa sino un teorema en Lean con un `have ... := by sorry` por paso, y antes de seguir se revisan tres cosas: que no haya cambiado el enunciado, que cada subobjetivo esté de verdad en el esqueleto y que no haya `sorry` escondidos en otra parte (por ejemplo en la táctica final, que haría trampa). Después el kernel lo compila con los `sorry` permitidos y si pasa, los pasos implican el teorema. Si algo falla se replanifica una sola vez con el error pegado en el prompt. Un detalle que salió al escribirlo es que el enunciado de cada paso se toma del texto del esqueleto y no del JSON, porque es el esqueleto lo que el kernel revisó y los dos podían no coincidir.
 
@@ -81,7 +82,7 @@ Compuerta: un problema entra y sale veredicto del kernel, sin RAG ni Crítico.
 | Pool de REPLs y `--workers` | ✅ | `src/repl_pool.py`, `tests/test_kernel_pool.py` |
 | `TIMEOUT` contra el kernel real | ✅ | `tests/test_kernel_pool.py` |
 | CI | ✅ | `.github/workflows/ci.yml` |
-| Corrida con LLM de verdad | ⏳ | clave del API y prover |
+| Corrida con LLM de verdad | ⏳ | Ollama listo, falta el prover servido |
 
 La compuerta se cerró pasando un problema real de dev por todo el grafo, con respuestas del LLM puestas a mano pero con el kernel de verdad decidiendo. El planificador parte `mathd_algebra_48` en un paso, el kernel acepta el esqueleto con su `sorry`, el paso se prueba como lema suelto, se pega en el esqueleto y el kernel acepta el teorema completo:
 
@@ -102,7 +103,7 @@ Probando el pool contra Lean real salieron dos errores más que con respuestas f
 
 Hay un dato sobre el límite de heartbeats que sirve para la semana 11: en esta máquina Lean gasta unos 20.000 heartbeats cada 7 a 12 segundos, entonces los 400.000 del encabezado tardan varios minutos y en la práctica el que corta siempre es el límite de 120 s de reloj.
 
-El CI corre en cada push las pruebas que no necesitan Lean ni API, y las del kernel real se lanzan a mano porque construir la imagen toma unos 20 minutos y varios GB.
+El CI corre en cada push las pruebas que no necesitan Lean ni modelos, y las del kernel real se lanzan a mano porque construir la imagen toma unos 20 minutos y varios GB.
 
 ## Reparto y compuertas siguientes
 
@@ -118,7 +119,7 @@ El CI corre en cada push las pruebas que no necesitan Lean ni API, y las del ker
 
 ## Deuda declarada
 
-- Las líneas base y la tasa de esqueletos no se han medido sobre dev, falta clave del API y el prover servido. Es lo primero que hay que hacer cuando estén.
+- Las líneas base y la tasa de esqueletos no se han medido sobre dev, falta correrlas con Ollama y el prover servido. Es lo primero que hay que hacer cuando estén.
 - El recall@k es bajo con consultas de puro símbolo, ver semanas 5–6.
 - PutnamBench no se ingirió. Es el benchmark secundario y sus enunciados traen definiciones de solución (`abbrev ..._solution`) que hay que manejar aparte, se deja para la semana 10 cuando se arme el test set.
 - `docs/references.bib` no existe. Las 27 entradas de `related-work.md` están escritas de memoria, hay que auditar venue, año y DOI contra la fuente antes de citarlas.

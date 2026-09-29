@@ -1,7 +1,7 @@
 ---
 agent: critic
 version: v0
-model: claude-opus-5
+model: qwen3:4b-instruct (Ollama)
 temperature: 0.0
 contract: docs/contracts/critic.schema.json
 ---

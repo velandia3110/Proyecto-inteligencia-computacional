@@ -24,6 +24,7 @@ from src.agents import plan_only
 from src.baselines import Ctx, baseline_a, baseline_b
 from src.budget import BudgetExhausted
 from src.graph import agents_only
+from src.llm import OLLAMA_MODEL, PROVER_MODEL
 from src.runlog import RunLog, summarize
 
 CONFIGS = {"baseline_a": baseline_a, "baseline_b": baseline_b, "plan_only": plan_only,
@@ -32,7 +33,7 @@ CONFIGS = {"baseline_a": baseline_a, "baseline_b": baseline_b, "plan_only": plan
 
 def make_backends() -> dict:
     """Perezoso: una config que no usa el prover no exige PROVER_URL, y al reves."""
-    from src.llm import Claude, Prover
+    from src.llm import Ollama, Prover
 
     class Lazy:
         def __init__(self, factory):
@@ -44,7 +45,7 @@ def make_backends() -> dict:
                 self.obj = self.obj or self.factory()
             return self.obj.complete(*a, **kw)
 
-    return {"claude": Lazy(Claude), "prover": Lazy(Prover)}
+    return {"llm": Lazy(Ollama), "prover": Lazy(Prover)}
 
 
 def run_problem(problem: dict, config: str, repl, backends: dict, log: RunLog) -> dict:
@@ -91,7 +92,7 @@ def main(argv=None) -> None:
     problems = select(args)
     run_id = f"{time.strftime('%Y%m%d-%H%M%S')}-{args.config}"
     log = RunLog(Path("runs") / f"{run_id}.jsonl", run_id, args.config, args.seed,
-                 models={"claude": "claude-opus-5", "prover": "Goedel-LM/Goedel-Prover-V2-8B"})
+                 models={"llm": OLLAMA_MODEL, "prover": PROVER_MODEL})
 
     from src.repl_pool import ReplPool
 

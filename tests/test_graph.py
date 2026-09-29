@@ -30,8 +30,8 @@ def events(c):
 
 def test_camino_feliz():
     with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmp:
-        claude = FakeLLM(_plan_json(GOOD_SK, GOOD_SG), SKETCH, SKETCH)
-        c = ctx(llm_claude=claude, llm_prover=FakeLLM(prover_says("linarith")),
+        local = FakeLLM(_plan_json(GOOD_SK, GOOD_SG), SKETCH, SKETCH)
+        c = ctx(llm_local=local, llm_prover=FakeLLM(prover_says("linarith")),
                 repl=ScriptRepl(good=["linarith"]), tmp=tmp)
         out = agents_only(c)
         assert out["solved"] and out["verdict"] == "OK", out
@@ -45,21 +45,21 @@ def test_reintento_a_ciegas():
     # Sin Critico el segundo intento NO ve el error de Lean: eso es lo que la ablacion
     # de la semana 9 compara contra el Critico.
     with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmp:
-        claude = FakeLLM(_plan_json(GOOD_SK, GOOD_SG), SKETCH, SKETCH, SKETCH)
+        local = FakeLLM(_plan_json(GOOD_SK, GOOD_SG), SKETCH, SKETCH, SKETCH)
         prover = FakeLLM(prover_says("nlinarith"), prover_says("linarith"))
-        c = ctx(llm_claude=claude, llm_prover=prover, repl=ScriptRepl(good=["  linarith"]), tmp=tmp)
+        c = ctx(llm_local=local, llm_prover=prover, repl=ScriptRepl(good=["  linarith"]), tmp=tmp)
         out = agents_only(c)
         assert out["solved"], out
         assert out["subgoals"][0]["attempts"] == 2
         assert c.budget.used == 6  # plan + 2 + 1, luego reintento con n=1: + 1 + 1
-        assert "unsolved goals" not in claude.seen[-1] and "unsolved goals" not in prover.seen[-1]
+        assert "unsolved goals" not in local.seen[-1] and "unsolved goals" not in prover.seen[-1]
 
 
 def test_falla_tras_dos_intentos():
     with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmp:
-        claude = FakeLLM(_plan_json(GOOD_SK, GOOD_SG), SKETCH, SKETCH, SKETCH)
+        local = FakeLLM(_plan_json(GOOD_SK, GOOD_SG), SKETCH, SKETCH, SKETCH)
         prover = FakeLLM(prover_says("nlinarith"), prover_says("nlinarith"))
-        c = ctx(llm_claude=claude, llm_prover=prover, repl=ScriptRepl(good=["  linarith"]), tmp=tmp)
+        c = ctx(llm_local=local, llm_prover=prover, repl=ScriptRepl(good=["  linarith"]), tmp=tmp)
         out = agents_only(c)
         assert not out["solved"] and out["verdict"] == "UNSOLVED_GOALS", out
         assert out["subgoals"][0]["status"] == "open"
@@ -67,24 +67,24 @@ def test_falla_tras_dos_intentos():
 
 def test_prover_sin_codigo_es_fallo_de_formalizacion():
     with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmp:
-        claude = FakeLLM(_plan_json(GOOD_SK, GOOD_SG), SKETCH, SKETCH, SKETCH)
+        local = FakeLLM(_plan_json(GOOD_SK, GOOD_SG), SKETCH, SKETCH, SKETCH)
         prover = FakeLLM("no se", prover_says("linarith"))
-        c = ctx(llm_claude=claude, llm_prover=prover, repl=ScriptRepl(good=["  linarith"]), tmp=tmp)
+        c = ctx(llm_local=local, llm_prover=prover, repl=ScriptRepl(good=["  linarith"]), tmp=tmp)
         assert agents_only(c)["solved"]
         assert [e["verdict"] for e in events(c)][:2] == ["OK", "FORMALIZATION_FAILED"]
 
 
 def test_plan_fallido():
     with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmp:
-        c = ctx(llm_claude=FakeLLM("x", "y"), tmp=tmp)
+        c = ctx(llm_local=FakeLLM("x", "y"), tmp=tmp)
         out = agents_only(c)
         assert out["verdict"] == "PLANNING_ERROR" and not out["skeleton_ok"] and not out["solved"]
 
 
 def test_presupuesto_es_techo_duro():
     with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmp:
-        claude = FakeLLM(_plan_json(GOOD_SK, GOOD_SG), SKETCH, SKETCH)
-        c = ctx(llm_claude=claude, llm_prover=FakeLLM(prover_says("linarith")),
+        local = FakeLLM(_plan_json(GOOD_SK, GOOD_SG), SKETCH, SKETCH)
+        c = ctx(llm_local=local, llm_prover=FakeLLM(prover_says("linarith")),
                 repl=ScriptRepl(good=["linarith"]), tmp=tmp)
         c.budget = Budget(max_llm_calls=3)
         try:

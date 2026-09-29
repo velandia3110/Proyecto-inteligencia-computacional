@@ -54,10 +54,10 @@ class ScriptRepl:
         return ReplResult("{}", messages=[{"severity": "error", "data": "unsolved goals\n⊢ False"}])
 
 
-def ctx(llm_claude=None, llm_prover=None, repl=None, tmp=None):
+def ctx(llm_local=None, llm_prover=None, repl=None, tmp=None):
     log = RunLog(Path(tmp) / "r.jsonl", "r", "test", 0, {})
     return Ctx(problem=PROBLEM, repl=repl or ScriptRepl(),
-               backends={"claude": llm_claude, "prover": llm_prover}, log=log)
+               backends={"llm": llm_local, "prover": llm_prover}, log=log)
 
 
 # --- prompts -------------------------------------------------------------------
@@ -132,17 +132,17 @@ def test_baseline_a_enunciado_cambiado():
 
 def test_baseline_b_falso_positivo_queda_registrado():
     with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmp:
-        claude = FakeLLM(json.dumps({"proof": "divide por 2", "self_verdict": "correct",
-                                     "confidence": 0.99}), model="claude-opus-5")
+        local = FakeLLM(json.dumps({"proof": "divide por 2", "self_verdict": "correct",
+                                     "confidence": 0.99}), model="qwen3:4b-instruct")
         prover = FakeLLM(f"```lean4\n{FS} := by\n  nlinarith\n```")
-        c = ctx(llm_claude=claude, llm_prover=prover, repl=ScriptRepl(good=[]), tmp=tmp)
+        c = ctx(llm_local=local, llm_prover=prover, repl=ScriptRepl(good=[]), tmp=tmp)
         out = baseline_b(c)
         # el modelo dijo "correct" y el kernel dijo que no: eso es un falso positivo
         assert out["self_verdict"] == "correct" and not out["solved"], out
         assert c.budget.used == 2
         c.log.close()
         calls = [json.loads(l) for l in open(c.log.path, encoding="utf-8")][1:]
-        assert calls[0]["cost_usd"] == (100 * 5 + 50 * 25) / 1e6
+        assert calls[0]["cost_usd"] == 0  # modelo local
 
 
 def test_summarize():
@@ -180,7 +180,7 @@ GOOD_SG = [{"name": "s1", "statement": "x = 4 / 2", "depends_on": []}]
 def test_planner_ok_a_la_primera():
     from src.agents import plan_and_check
     with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmp:
-        c = ctx(llm_claude=FakeLLM(_plan_json(GOOD_SK, GOOD_SG)), tmp=tmp)
+        c = ctx(llm_local=FakeLLM(_plan_json(GOOD_SK, GOOD_SG)), tmp=tmp)
         planned, verdict = plan_and_check(c)
         assert verdict == "OK" and planned["subgoals"][0]["name"] == "s1"
         assert c.budget.used == 1
@@ -190,17 +190,17 @@ def test_planner_que_cambia_el_enunciado_replanifica():
     from src.agents import plan_and_check
     bad = GOOD_SK.replace("x = 2 :=", "x = 3 :=")
     with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmp:
-        claude = FakeLLM(_plan_json(bad, GOOD_SG), _plan_json(GOOD_SK, GOOD_SG))
-        c = ctx(llm_claude=claude, tmp=tmp)
+        local = FakeLLM(_plan_json(bad, GOOD_SG), _plan_json(GOOD_SK, GOOD_SG))
+        c = ctx(llm_local=local, tmp=tmp)
         planned, verdict = plan_and_check(c)
         assert verdict == "OK" and c.budget.used == 2
-        assert "cambio el enunciado" in claude.seen[1]  # el error llego al reintento
+        assert "cambio el enunciado" in local.seen[1]  # el error llego al reintento
 
 
 def test_planner_se_rinde_tras_un_replan():
     from src.agents import plan_and_check
     with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmp:
-        c = ctx(llm_claude=FakeLLM("no hay json", "tampoco"), tmp=tmp)
+        c = ctx(llm_local=FakeLLM("no hay json", "tampoco"), tmp=tmp)
         planned, verdict = plan_and_check(c)
         assert planned is None and verdict == "PLANNING_ERROR" and c.budget.used == 2
 
@@ -209,7 +209,7 @@ def test_planner_sorry_extra_es_invalido():
     from src.agents import AgentError, plan
     sk = GOOD_SK.replace("  linarith", "  sorry")
     with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmp:
-        c = ctx(llm_claude=FakeLLM(_plan_json(sk, GOOD_SG)), tmp=tmp)
+        c = ctx(llm_local=FakeLLM(_plan_json(sk, GOOD_SG)), tmp=tmp)
         try:
             plan(c)
         except AgentError as e:
@@ -225,7 +225,7 @@ def test_voto_y_lemas_inventados():
     lemmas = "- `mul_pos` : 0 < a → 0 < b → 0 < a * b"
     sk = lambda uses: json.dumps({"steps": ["a"], "tactic_hints": ["linarith"], "uses_lemmas": uses})
     with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmp:
-        c = ctx(llm_claude=FakeLLM(sk(["mul_pos", "Real.inventado"]), sk([])), tmp=tmp)
+        c = ctx(llm_local=FakeLLM(sk(["mul_pos", "Real.inventado"]), sk([])), tmp=tmp)
         out = generate(c, GOOD_SG[0], [], lemmas=lemmas, n=2)
         assert out["sketches"][0]["uses_lemmas"] == ["mul_pos"]
         assert out["agreement"] == 1.0 and c.budget.used == 2

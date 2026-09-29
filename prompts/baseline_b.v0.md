@@ -1,7 +1,7 @@
 ---
 agent: baseline_b
 version: v0
-model: claude-opus-5
+model: qwen3:4b-instruct (Ollama)
 contract: ninguno (JSON propio, ver formato abajo)
 ---
 

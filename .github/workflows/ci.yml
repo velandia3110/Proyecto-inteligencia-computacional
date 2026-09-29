@@ -19,7 +19,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install jsonschema "langgraph>=0.2" "anthropic>=0.40" numpy faiss-cpu
+      - run: pip install jsonschema "langgraph>=0.2" numpy faiss-cpu
       - run: python tests/test_verify.py
       - run: python tests/test_pipeline.py
       - run: python tests/test_graph.py
