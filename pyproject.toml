@@ -12,9 +12,10 @@ dependencies = [
 [project.optional-dependencies]
 # El recuperador (semana 6 en adelante): indice FAISS y BGE-M3 para codificar consultas.
 rag = ["faiss-cpu>=1.8", "sentence-transformers>=3.0"]
+# Semana 12: src/analysis.py es solo stdlib; scipy solo lo usan las pruebas para validar
+# Wilson y McNemar exacto contra una implementacion de referencia.
+analysis = ["scipy>=1.11"]
 
-# Se agregan cuando toquen, no antes:
-#   semana 12 -> scipy, statsmodels (Wilson, McNemar, bootstrap)
 # La ingesta de miniF2F no necesito `datasets`: es un JSONL, se baja con urllib.
 
 [build-system]
