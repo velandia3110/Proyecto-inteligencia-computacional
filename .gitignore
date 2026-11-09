@@ -16,3 +16,7 @@ data/mathlib_premises.jsonl
 # Logs de corridas: los del experimento final SI se versionan (semana 11)
 runs/*.jsonl
 !runs/.gitkeep
+
+# PutnamBench: se regenera con `python -m src.data --putnam` (fijado por sha256)
+data/putnambench.jsonl
+hf/build/
