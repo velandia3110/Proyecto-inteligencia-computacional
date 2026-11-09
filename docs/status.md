@@ -1,6 +1,6 @@
 # Estado del proyecto
 
-Actualizado: 2026-09-28 · Semanas 1–8 cerradas en lo que depende de nosotros. Planificador, Generador y Crítico pasaron a un modelo local con Ollama (`qwen3:4b-instruct`, costo 0); lo que falta es la corrida sobre dev y el prover servido.
+Actualizado: 2026-11-09 · Semanas 1–10, 12 y 13 cerradas en código y documentos. Lo único que falta es **correr** (semana 11): necesita Ollama con `qwen3:4b-instruct` y el prover servido en `PROVER_URL`. Sin esas corridas no hay ningún resultado, y el informe lleva marcadores `[[RESULT: ...]]` donde van los números.
 
 ## Semanas 1–2
 
@@ -105,22 +105,63 @@ Hay un dato sobre el límite de heartbeats que sirve para la semana 11: en esta 
 
 El CI corre en cada push las pruebas que no necesitan Lean ni modelos, y las del kernel real se lanzan a mano porque construir la imagen toma unos 20 minutos y varios GB.
 
-## Reparto y compuertas siguientes
+## Semana 9: Crítico y RAG
 
-| Semana | Entregable | Compuerta |
+Compuerta: las 5 configuraciones son invocables por bandera.
+
+| Condición | Estado | Evidencia |
 |---|---|---|
-| 9 | RAG + Crítico | las 5 configuraciones son invocables por bandera |
-| 10 | Test set 40–60, dataset card | prompts CONGELADOS |
-| 11 | Experimentos | el test set se abre **una sola vez** |
-| 12 | Análisis y empaquetado | Wilson, McNemar, bootstrap; repo HF |
-| 13 | Informe IMRaD + sustentación | ~8.000 palabras |
+| Crítico (`prompts/critic.v1.md`): el LLM clasifica y diagnostica, la acción sale de una tabla fija en código | ✅ | `src/agents.py` `critique()` |
+| Nodo `critique` en el grafo: reformalizar, recuperar más (k 10→20, tope 50), generar, replanificar (máx. 1), abandonar | ✅ | `src/graph.py` |
+| RAG conectado, recuperador perezoso (las configs sin RAG no importan faiss) | ✅ | `src/graph.py` `shared_retriever()` |
+| **Compuerta: `baseline_a`, `baseline_b`, `agents_only`, `no_critic`, `full` por `--config`** | ✅ | `run.py`, 17/17 en `tests/test_graph.py` |
+| Ajuste sobre dev (k final, consulta en lenguaje natural) | ⏳ | sin corridas reales |
 
-**Punto de corte:** si el pipeline end-to-end no corre al final de la semana 8, el RAG se recorta a extensión declarada y la ablación corre con 4 configuraciones. El pipeline sí corre de punta a punta contra el kernel, así que por código no se activa, pero si la clave y el prover no llegan pronto la semana 9 se queda sin datos reales para decidir.
+Las tres configuraciones multiagente comparten el tope de 2 intentos por subobjetivo y la regla n=2/n=1, así que la única diferencia entre ellas es la de la tabla §6 (ver `decisions.md`, 2026-11-09). Si falta `data/index/`, `no_critic` y `full` terminan en CRASH en cada problema: hay que construir el índice antes de correrlas.
+
+## Semana 10: test set, PutnamBench y congelado
+
+| Condición | Estado | Evidencia |
+|---|---|---|
+| Test set de 50 problemas, semilla 10, estratificado por fuente usando solo los ids | ✅ | `data/test_set.v1.txt`, `python -m src.data --test-set` |
+| Dataset card | ✅ | `docs/dataset-card.md` (en inglés, formato HF) |
+| PutnamBench ingerido, fijado en el último commit compatible con nuestra Mathlib | ✅ 644 problemas | `python -m src.data --putnam` |
+| **Prompts congelados** | ✅ provisional | `prompts/FROZEN.sha256`; `run.py --split test` se niega si no coinciden |
+
+El congelado es provisional porque todavía no hubo ajuste sobre dev. Si ese ajuste cambia un prompt, se regenera el manifiesto y se anota en `decisions.md` **antes** de abrir el test.
+
+## Semana 11: experimentos
+
+⏳ **No empezada, está bloqueada.** Hace falta Ollama corriendo y Goedel-Prover-V2-8B servido (vLLM en Colab o un endpoint de HF). El orden es:
+
+1. Construir el índice (`python -m src.retriever build`) si no existe.
+2. Ajustar sobre dev con las 5 configuraciones, verificar la banda de 30–60% y fijar k. Si un prompt cambia, regenerar `prompts/FROZEN.sha256`.
+3. Abrir el test **una sola vez**: `python run.py --config <c> --split test --abrir-test --problems "$(python -m src.data --test-set-ids)"` para cada una de las 5 configuraciones.
+4. Versionar esos JSONL (`.gitignore` tiene prevista la excepción).
+
+## Semana 12: análisis y empaquetado
+
+| Condición | Estado | Evidencia |
+|---|---|---|
+| Wilson 95%, McNemar exacto con Bonferroni (10 pares), diferencia con IC por bootstrap pareado, llamadas por resuelto, falsos positivos evitados | ✅ código | `src/analysis.py`, 7/7 en `tests/test_analysis.py` (datos sintéticos) |
+| Repo HF de resultados y Space de Gradio que reproduce trazas | ✅ código · ⏳ subida | `hf/`; `python hf/prepare.py runs/*.jsonl` arma `hf/build/` sin subir nada |
+
+Para publicar falta decidir el nombre del repo y del Space y confirmar la licencia de miniF2F (la tarjeta dice `apache-2.0` sin verificar).
+
+## Semana 13: informe y sustentación
+
+| Condición | Estado | Evidencia |
+|---|---|---|
+| Informe IMRaD en inglés | ✅ borrador, ~10.000 palabras con tablas y apéndices | `docs/report/report.md` |
+| Guion de la sustentación | ✅ borrador | `docs/report/sustentacion.md` |
+| `references.bib`, cada referencia verificada contra la fuente | ✅ 38 entradas | `docs/references.bib`, auditoría al final de `related-work.md` |
+
+Pendiente en el informe: rellenar los marcadores `[[RESULT: ...]]` con la salida de `src/analysis.py`, además de `[[AUTHORS]]`, `[[DATE]]` y la declaración de uso de IA del apéndice A.
 
 ## Deuda declarada
 
-- Las líneas base y la tasa de esqueletos no se han medido sobre dev, falta correrlas con Ollama y el prover servido. Es lo primero que hay que hacer cuando estén.
-- El recall@k es bajo con consultas de puro símbolo, ver semanas 5–6.
-- PutnamBench no se ingirió. Es el benchmark secundario y sus enunciados traen definiciones de solución (`abbrev ..._solution`) que hay que manejar aparte, se deja para la semana 10 cuando se arme el test set.
-- `docs/references.bib` no existe. Las 27 entradas de `related-work.md` están escritas de memoria, hay que auditar venue, año y DOI contra la fuente antes de citarlas.
-- Referencia del informe del MIT sin identificar (`related-work.md` eje 7).
+- **Ninguna corrida real.** Las líneas base, la tasa de esqueletos, el ajuste de dev y los experimentos esperan a Ollama y al prover servido. Es lo único que bloquea el cierre.
+- El recall@k es bajo con consultas de puro símbolo, ver semanas 5–6. Probar en dev la consulta con el paso en lenguaje natural.
+- PutnamBench está ingerido pero el runner no lo carga: necesita `import Mathlib` + `preamble` en vez de `HEADER`, y sus enunciados no se han compilado contra nuestra imagen. Además, el pipeline no maneja el modo oficial (dar también la respuesta del `abbrev ..._solution`).
+- `design-document.md` §4 todavía dice que la verdad de referencia del recall sale de LeanDojo; la fila del historial de `decisions.md` del 2026-09-27 lo reemplaza.
+- Las columnas de costo van a salir en 0 USD (modelos locales); el informe reporta tiempo y tokens en su lugar.

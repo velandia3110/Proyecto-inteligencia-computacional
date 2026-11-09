@@ -5,7 +5,7 @@ de razonamiento, RAG sobre Mathlib) y **verificación rígida** (kernel de Lean 
 cuenta como resuelto **solo** si el kernel acepta la prueba: sin `sorry` y sin axiomas fuera del
 núcleo.
 
-Estado: **semanas 1–8**, el grafo completo corre de punta a punta contra el kernel real (con LLM falso), falta correrlo con los modelos de verdad. Todo corre en local, sin costo por llamada: Planificador, Generador y Crítico usan Qwen3-4B con Ollama. Ver `docs/status.md`.
+Estado: **semanas 1–10, 12 y 13 cerradas en código y documentos**: las 5 configuraciones de la ablación corren por `--config`, el test set está sellado y los prompts congelados, el análisis estadístico y el borrador del informe están listos. Falta correr los experimentos (semana 11) con Ollama y el prover servido. Todo corre en local, sin costo por llamada. Ver `docs/status.md`.
 
 ## Documentación
 
@@ -15,7 +15,10 @@ Estado: **semanas 1–8**, el grafo completo corre de punta a punta contra el ke
 | `docs/Informe_Avance_Proyecto_IA_EN.docx` / `.pdf` | El mismo informe en inglés. |
 | `docs/decisions.md` | Decisiones congeladas. Se lee primero. |
 | `docs/design-document.md` | Entregable de las semanas 1–2: agentes, grafo de estados, veredictos, formalización del retriever. |
-| `docs/related-work.md` | 27 referencias primarias por eje temático → sección *Related Work*. |
+| `docs/related-work.md` | 29 referencias primarias, verificadas contra la fuente (`docs/references.bib`) por eje temático → sección *Related Work*. |
+| `docs/report/report.md` | Informe final IMRaD (inglés), borrador con marcadores `[[RESULT: ...]]` hasta la semana 11. |
+| `docs/report/sustentacion.md` | Guion de la sustentación. |
+| `docs/dataset-card.md` | Tarjeta del test set y de PutnamBench. |
 | `docs/contracts/` | Seis JSON Schema, uno por agente (RNF-4). |
 | `docs/status.md` | Qué está hecho, qué falta, compuertas por semana. |
 | `prompts/` | Prompts versionados como archivos. Nunca inline en el código (D5.2). |
@@ -44,6 +47,8 @@ Usan respuestas del REPL y de los modelos fabricadas, así que corren en cualqui
 python tests/test_verify.py      # los 7 veredictos del Verificador
 python tests/test_pipeline.py    # prompts, contratos, líneas base, Planificador, Generador
 python tests/test_graph.py       # el grafo completo, reintentos y presupuesto
+python tests/test_data.py        # test set sellado y PutnamBench
+python tests/test_analysis.py    # Wilson, McNemar, bootstrap (datos sinteticos)
 ```
 
 ### 3. Entorno de Lean (Docker)
