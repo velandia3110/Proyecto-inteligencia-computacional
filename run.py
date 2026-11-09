@@ -25,7 +25,7 @@ from src.agents import plan_only
 from src.baselines import Ctx, baseline_a, baseline_b
 from src.budget import BudgetExhausted
 from src.graph import agents_only, full, no_critic
-from src.llm import OLLAMA_MODEL, PROVER_MODEL
+from src.llm import FROZEN, OLLAMA_MODEL, PROVER_MODEL, prompts_manifest
 from src.runlog import RunLog, summarize
 
 CONFIGS = {"baseline_a": baseline_a, "baseline_b": baseline_b, "plan_only": plan_only,
@@ -69,6 +69,8 @@ def select(args) -> list[dict]:
     if args.split == "test" and not args.abrir_test:
         raise SystemExit("el test set se abre UNA vez, en la semana 11 (D5.1). "
                          "Si es ese momento, agregar --abrir-test.")
+    if args.split == "test" and FROZEN.read_text(encoding="utf-8").replace("\r", "") != prompts_manifest():
+        raise SystemExit("los prompts cambiaron desde que se congelaron (D5.4, prompts/FROZEN.sha256).")
     problems = data.load(args.split)
     if args.problems:
         wanted = set(args.problems.split(","))

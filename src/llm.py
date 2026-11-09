@@ -12,6 +12,7 @@ y se escribe la linea del JSONL. Asi el conteo del RNF-3 no se puede saltar.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import re
@@ -59,6 +60,17 @@ def _fill(text: str, vals: dict) -> str:
         return str(vals[m[1]])
 
     return _PLACEHOLDER.sub(sub, text)
+
+
+FROZEN = PROMPTS_DIR / "FROZEN.sha256"
+
+
+def prompts_manifest() -> str:
+    """sha256 de cada prompt (texto con LF, para que el CRLF de git en Windows no lo cambie).
+    D5.4: congelado en la semana 10; el runner no abre el test si no coincide con FROZEN."""
+    return "".join(
+        f"{hashlib.sha256(p.read_text(encoding='utf-8').replace(chr(13), '').encode()).hexdigest()}  {p.name}\n"
+        for p in sorted(PROMPTS_DIR.glob("*.md")))
 
 
 def load_prompt(name: str) -> Prompt:

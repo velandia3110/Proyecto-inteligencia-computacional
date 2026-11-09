@@ -261,6 +261,12 @@ def test_recuperador_coseno_exacto():
     assert _lemma_names(format_lemmas(out)) == {"sq_nonneg", out["lemmas"][1]["name"]}
 
 
+def test_prompts_congelados():
+    from src.llm import FROZEN, prompts_manifest
+    assert FROZEN.read_text(encoding="utf-8").replace("\r", "") == prompts_manifest(), \
+        "un prompt cambio despues del congelado de la semana 10 (D5.4)"
+
+
 if __name__ == "__main__":
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     for t in tests:
