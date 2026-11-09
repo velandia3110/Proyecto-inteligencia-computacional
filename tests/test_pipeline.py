@@ -51,7 +51,9 @@ class ScriptRepl:
             return ReplResult("{}", sorries=[{"goal": "?"}], env=2)
         if any(g in cmd for g in self.good):
             return ReplResult("{}", env=2)
-        return ReplResult("{}", messages=[{"severity": "error", "data": "unsolved goals\n⊢ False"}])
+        msgs = [{"severity": "error", "data": "unsolved goals\n⊢ False"}]
+        # raw = la respuesta JSON del REPL, como la ve el Critico con el kernel real
+        return ReplResult(json.dumps({"messages": msgs}, ensure_ascii=False), messages=msgs)
 
 
 def ctx(llm_local=None, llm_prover=None, repl=None, tmp=None):

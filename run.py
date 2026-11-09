@@ -3,6 +3,7 @@
     python run.py --config baseline_a --limit 5
     python run.py --config baseline_b --problems mathd_algebra_478,amc12a_2015_p10
     python run.py --config agents_only --limit 20 --workers 2
+    python run.py --config full --limit 20      # no_critic y full cargan el indice de data/index/
     python -m src.runlog runs/<run_id>.jsonl
 
 Se corre dentro de la imagen Docker (necesita el REPL de Lean). Ver README.
@@ -23,12 +24,12 @@ from src import data
 from src.agents import plan_only
 from src.baselines import Ctx, baseline_a, baseline_b
 from src.budget import BudgetExhausted
-from src.graph import agents_only
+from src.graph import agents_only, full, no_critic
 from src.llm import OLLAMA_MODEL, PROVER_MODEL
 from src.runlog import RunLog, summarize
 
 CONFIGS = {"baseline_a": baseline_a, "baseline_b": baseline_b, "plan_only": plan_only,
-           "agents_only": agents_only}
+           "agents_only": agents_only, "no_critic": no_critic, "full": full}
 
 
 def make_backends() -> dict:

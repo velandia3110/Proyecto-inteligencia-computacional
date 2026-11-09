@@ -1,4 +1,4 @@
-"""Planificador, Generador y Autoformalizador (RF-1, RF-2, RF-4).
+"""Planificador, Generador, Autoformalizador y Critico (RF-1, RF-2, RF-4, RF-6).
 
 Cada agente: llama al LLM por `llm.call` (presupuesto + log), parsea, valida
 contra su contrato y devuelve el objeto del contrato. Si la salida no cumple, se
@@ -69,9 +69,9 @@ def verify_skeleton(ctx, planned: dict) -> Verdict:
     return verify(planned["skeleton"], ctx.repl, allow_sorry=True)
 
 
-def plan_and_check(ctx, max_replans: int = 1) -> tuple[dict | None, str]:
-    """PLAN -> VERIFY_SKELETON, replanificando una vez con el error. -> (plan, veredicto)."""
-    retry = None
+def plan_and_check(ctx, max_replans: int = 1, retry: dict | None = None) -> tuple[dict | None, str]:
+    """PLAN -> VERIFY_SKELETON, replanificando una vez con el error. -> (plan, veredicto).
+    `retry` llega cuando el Critico manda replanificar (skeleton, error, diagnosis)."""
     for i in range(max_replans + 1):
         ctx.attempt = i
         try:
@@ -184,3 +184,54 @@ def verify_subgoal(ctx, formalized: dict) -> Verdict:
     name = formalized["_lemma"].split()[1]
     body = "\n".join("  " + l for l in formalized["proof"].splitlines())
     return verify(f"{formalized['_lemma']} := by\n{body}", ctx.repl, theorem_name=name)
+
+
+# --- Critico -------------------------------------------------------------------
+
+# Tabla fija clase -> accion (critic.schema.json): el LLM clasifica, el codigo decide.
+CRITIC_ACTION = {"SYNTAX": "RETRY_FORMALIZE", "MISSING_LEMMA": "RETRIEVE_MORE",
+                 "UNSOLVED_GOALS": "REGENERATE_SKETCH", "TIMEOUT": "RETRY_FORMALIZE",
+                 "PLANNING_ERROR": "REPLAN", "BUDGET_EXHAUSTED": "ABANDON"}
+# Si el modelo no devuelve una clase valida, se toma la del verificador.
+_VERDICT_CLASS = {"MISSING_LEMMA": "MISSING_LEMMA", "UNSOLVED_GOALS": "UNSOLVED_GOALS",
+                  "TIMEOUT": "TIMEOUT"}
+
+
+def critique(ctx, subgoal: dict, proof: str | None, verdict: str, raw: str,
+             replanned: bool, k: int, k_max: int) -> dict:
+    """Veredicto + error crudo + historial -> objeto del contrato del Critico.
+
+    Corte temprano de D3: PLANNING_ERROR cuando ya se replanifico, o un segundo TIMEOUT del
+    mismo subobjetivo, son irrecuperables y la accion pasa a ABANDON."""
+    history = subgoal.get("history", [])
+    r = call(ctx, "critic", "critic.v1", subgoal_name=subgoal["name"],
+             subgoal_statement=subgoal["statement"], attempted_proof=proof or "(sin prueba)",
+             verdict=verdict, lean_raw=raw[:4000] or "(vacia)",
+             attempt_n=str(subgoal["attempts"]), k_max=str(k_max),
+             attempt_history="\n".join(f"- {h['verdict']} -> {h['error_class']}" for h in history)
+             or "(ninguno)",
+             calls_used=str(ctx.budget.used), max_calls=str(ctx.budget.max_llm_calls))
+    try:
+        out = parse_json(r.text)
+        cls, diag = out["error_class"], str(out["diagnosis"]).strip()
+        if cls not in CRITIC_ACTION or not diag:
+            raise ValueError
+    except (ValueError, KeyError, TypeError):
+        cls = _VERDICT_CLASS.get(verdict, "SYNTAX")
+        diag = f"(el Critico no devolvio una clase valida; se usa el veredicto {verdict})"
+        ctx.log.event(problem_id=ctx.problem_id, agent="critic", event="invalid_output")
+    recoverable = not ((cls == "PLANNING_ERROR" and replanned) or
+                       (cls == "TIMEOUT" and any(h["error_class"] == "TIMEOUT" for h in history)))
+    out = {"error_class": cls, "action": CRITIC_ACTION[cls] if recoverable else "ABANDON",
+           "diagnosis": diag, "recoverable": recoverable}
+    if out["action"] == "RETRIEVE_MORE":
+        out["new_k"] = min(2 * k, 50)
+    return _checked("critic", out)
+
+
+def feedback_block(prompt_name: str, fb: dict | None) -> str:
+    """Bloque de reintento con el error a la vista. critic.v1 trae el del Generador."""
+    if not fb:
+        return ""
+    return load_prompt(prompt_name).render_retry(previous_proof=fb["proof"],
+                                                 lean_error=fb["error"], diagnosis=fb["diagnosis"])
