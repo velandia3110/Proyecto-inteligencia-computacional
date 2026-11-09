@@ -1,0 +1,413 @@
+% Bibliografia del proyecto (informe final, D1.8).
+% Auditada 2026-11-09 contra la fuente: API de arXiv (metadatos de los 27 arXiv id),
+% Crossref (DOI, volumen, paginas), y las paginas de NeurIPS/ICLR/ACL Anthology/Nature.
+% Las claves siguen el numero de docs/related-work.md en el comentario de cada entrada.
+% Listas de autores largas se truncan con "and others" (se citan como "et al.").
+
+% ---------------------------------------------------------------- Eje 1
+% [1]
+@inproceedings{vaswani2017attention,
+  author    = {Ashish Vaswani and Noam Shazeer and Niki Parmar and Jakob Uszkoreit and Llion Jones and Aidan N. Gomez and Lukasz Kaiser and Illia Polosukhin},
+  title     = {Attention Is All You Need},
+  booktitle = {Advances in Neural Information Processing Systems 30 (NIPS 2017)},
+  year      = {2017},
+  eprint    = {1706.03762},
+  archivePrefix = {arXiv}
+}
+
+% [2]
+@inproceedings{brown2020language,
+  author    = {Tom B. Brown and Benjamin Mann and Nick Ryder and Melanie Subbiah and Jared Kaplan and Prafulla Dhariwal and Arvind Neelakantan and Pranav Shyam and Girish Sastry and Amanda Askell and others},
+  title     = {Language Models are Few-Shot Learners},
+  booktitle = {Advances in Neural Information Processing Systems 33 (NeurIPS 2020)},
+  year      = {2020},
+  eprint    = {2005.14165},
+  archivePrefix = {arXiv}
+}
+
+% [3]
+@inproceedings{ouyang2022training,
+  author    = {Long Ouyang and Jeff Wu and Xu Jiang and Diogo Almeida and Carroll L. Wainwright and Pamela Mishkin and Chong Zhang and Sandhini Agarwal and Katarina Slama and Alex Ray and others},
+  title     = {Training Language Models to Follow Instructions with Human Feedback},
+  booktitle = {Advances in Neural Information Processing Systems 35 (NeurIPS 2022)},
+  year      = {2022},
+  eprint    = {2203.02155},
+  archivePrefix = {arXiv}
+}
+
+% ---------------------------------------------------------------- Eje 2
+% [4]
+@inproceedings{wei2022chain,
+  author    = {Jason Wei and Xuezhi Wang and Dale Schuurmans and Maarten Bosma and Brian Ichter and Fei Xia and Ed Chi and Quoc Le and Denny Zhou},
+  title     = {Chain-of-Thought Prompting Elicits Reasoning in Large Language Models},
+  booktitle = {Advances in Neural Information Processing Systems 35 (NeurIPS 2022)},
+  year      = {2022},
+  eprint    = {2201.11903},
+  archivePrefix = {arXiv}
+}
+
+% [5]
+@inproceedings{wang2023selfconsistency,
+  author    = {Xuezhi Wang and Jason Wei and Dale Schuurmans and Quoc Le and Ed Chi and Sharan Narang and Aakanksha Chowdhery and Denny Zhou},
+  title     = {Self-Consistency Improves Chain of Thought Reasoning in Language Models},
+  booktitle = {International Conference on Learning Representations (ICLR)},
+  year      = {2023},
+  eprint    = {2203.11171},
+  archivePrefix = {arXiv}
+}
+
+% [6]
+@inproceedings{yao2023tree,
+  author    = {Shunyu Yao and Dian Yu and Jeffrey Zhao and Izhak Shafran and Thomas L. Griffiths and Yuan Cao and Karthik Narasimhan},
+  title     = {Tree of Thoughts: Deliberate Problem Solving with Large Language Models},
+  booktitle = {Advances in Neural Information Processing Systems 36 (NeurIPS 2023)},
+  year      = {2023},
+  eprint    = {2305.10601},
+  archivePrefix = {arXiv}
+}
+
+% [7]
+@inproceedings{hendrycks2021math,
+  author    = {Dan Hendrycks and Collin Burns and Saurav Kadavath and Akul Arora and Steven Basart and Eric Tang and Dawn Song and Jacob Steinhardt},
+  title     = {Measuring Mathematical Problem Solving With the {MATH} Dataset},
+  booktitle = {Proceedings of the Neural Information Processing Systems Track on Datasets and Benchmarks (NeurIPS 2021)},
+  year      = {2021},
+  eprint    = {2103.03874},
+  archivePrefix = {arXiv}
+}
+
+% ---------------------------------------------------------------- Eje 3
+% [8]
+@inproceedings{yao2023react,
+  author    = {Shunyu Yao and Jeffrey Zhao and Dian Yu and Nan Du and Izhak Shafran and Karthik Narasimhan and Yuan Cao},
+  title     = {{ReAct}: Synergizing Reasoning and Acting in Language Models},
+  booktitle = {International Conference on Learning Representations (ICLR)},
+  year      = {2023},
+  eprint    = {2210.03629},
+  archivePrefix = {arXiv}
+}
+
+% [9] La pagina de NeurIPS lista 5 autores; arXiv v4 agrega a Edward Berman. Se usa la de arXiv.
+@inproceedings{shinn2023reflexion,
+  author    = {Noah Shinn and Federico Cassano and Edward Berman and Ashwin Gopinath and Karthik Narasimhan and Shunyu Yao},
+  title     = {Reflexion: Language Agents with Verbal Reinforcement Learning},
+  booktitle = {Advances in Neural Information Processing Systems 36 (NeurIPS 2023)},
+  year      = {2023},
+  eprint    = {2303.11366},
+  archivePrefix = {arXiv}
+}
+
+% [10] Venue corregido: COLM 2024 (antes aparecia sin venue). Version previa en el
+% workshop LLM Agents de ICLR 2024.
+@inproceedings{wu2024autogen,
+  author    = {Qingyun Wu and Gagan Bansal and Jieyu Zhang and Yiran Wu and Beibin Li and Erkang Zhu and Li Jiang and Xiaoyun Zhang and Shaokun Zhang and Jiale Liu and Ahmed Hassan Awadallah and Ryen W. White and others},
+  title     = {{AutoGen}: Enabling Next-Gen {LLM} Applications via Multi-Agent Conversation},
+  booktitle = {Conference on Language Modeling (COLM)},
+  year      = {2024},
+  eprint    = {2308.08155},
+  archivePrefix = {arXiv}
+}
+
+% [11]
+@inproceedings{park2023generative,
+  author    = {Joon Sung Park and Joseph C. O'Brien and Carrie J. Cai and Meredith Ringel Morris and Percy Liang and Michael S. Bernstein},
+  title     = {Generative Agents: Interactive Simulacra of Human Behavior},
+  booktitle = {Proceedings of the 36th Annual ACM Symposium on User Interface Software and Technology (UIST)},
+  pages     = {1--22},
+  year      = {2023},
+  doi       = {10.1145/3586183.3606763},
+  eprint    = {2304.03442},
+  archivePrefix = {arXiv}
+}
+
+% ---------------------------------------------------------------- Eje 4
+% [12]
+@inproceedings{lewis2020rag,
+  author    = {Patrick Lewis and Ethan Perez and Aleksandra Piktus and Fabio Petroni and Vladimir Karpukhin and Naman Goyal and Heinrich K{\"u}ttler and Mike Lewis and Wen-tau Yih and Tim Rockt{\"a}schel and Sebastian Riedel and Douwe Kiela},
+  title     = {Retrieval-Augmented Generation for Knowledge-Intensive {NLP} Tasks},
+  booktitle = {Advances in Neural Information Processing Systems 33 (NeurIPS 2020)},
+  pages     = {9459--9474},
+  year      = {2020},
+  eprint    = {2005.11401},
+  archivePrefix = {arXiv}
+}
+
+% [13]
+@inproceedings{karpukhin2020dpr,
+  author    = {Vladimir Karpukhin and Barlas O{\u{g}}uz and Sewon Min and Patrick Lewis and Ledell Wu and Sergey Edunov and Danqi Chen and Wen-tau Yih},
+  title     = {Dense Passage Retrieval for Open-Domain Question Answering},
+  booktitle = {Proceedings of the 2020 Conference on Empirical Methods in Natural Language Processing (EMNLP)},
+  pages     = {6769--6781},
+  year      = {2020},
+  doi       = {10.18653/v1/2020.emnlp-main.550},
+  eprint    = {2004.04906},
+  archivePrefix = {arXiv}
+}
+
+% [14] Titulo corregido (antes "BGE M3-Embedding") y venue agregado.
+@inproceedings{chen2024m3,
+  author    = {Jianlv Chen and Shitao Xiao and Peitian Zhang and Kun Luo and Defu Lian and Zheng Liu},
+  title     = {{M3-Embedding}: Multi-Linguality, Multi-Functionality, Multi-Granularity Text Embeddings Through Self-Knowledge Distillation},
+  booktitle = {Findings of the Association for Computational Linguistics: ACL 2024},
+  pages     = {2318--2335},
+  year      = {2024},
+  doi       = {10.18653/v1/2024.findings-acl.137},
+  eprint    = {2402.03216},
+  archivePrefix = {arXiv}
+}
+
+% [15] Solo preprint; no se encontro version en un venue con revision por pares.
+@misc{wang2022e5,
+  author    = {Liang Wang and Nan Yang and Xiaolong Huang and Binxing Jiao and Linjun Yang and Daxin Jiang and Rangan Majumder and Furu Wei},
+  title     = {Text Embeddings by Weakly-Supervised Contrastive Pre-training},
+  year      = {2022},
+  eprint    = {2212.03533},
+  archivePrefix = {arXiv},
+  note      = {arXiv preprint}
+}
+
+% [16] Anio corregido: 2021 (vol. 7, no. 3). 2019 es la publicacion anticipada en linea.
+@article{johnson2021faiss,
+  author    = {Jeff Johnson and Matthijs Douze and Herv{\'e} J{\'e}gou},
+  title     = {Billion-Scale Similarity Search with {GPUs}},
+  journal   = {IEEE Transactions on Big Data},
+  volume    = {7},
+  number    = {3},
+  pages     = {535--547},
+  year      = {2021},
+  doi       = {10.1109/TBDATA.2019.2921572},
+  eprint    = {1702.08734},
+  archivePrefix = {arXiv}
+}
+
+% ---------------------------------------------------------------- Eje 5
+% [17]
+@inproceedings{demoura2021lean4,
+  author    = {Leonardo de Moura and Sebastian Ullrich},
+  title     = {The {Lean} 4 Theorem Prover and Programming Language},
+  booktitle = {Automated Deduction -- CADE 28},
+  series    = {Lecture Notes in Computer Science},
+  volume    = {12699},
+  pages     = {625--635},
+  publisher = {Springer},
+  year      = {2021},
+  doi       = {10.1007/978-3-030-79876-5_37}
+}
+
+% [18]
+@inproceedings{mathlib2020,
+  author    = {{The mathlib Community}},
+  title     = {The {Lean} Mathematical Library},
+  booktitle = {Proceedings of the 9th ACM SIGPLAN International Conference on Certified Programs and Proofs (CPP)},
+  pages     = {367--381},
+  year      = {2020},
+  doi       = {10.1145/3372885.3373824},
+  eprint    = {1910.09336},
+  archivePrefix = {arXiv}
+}
+
+% [19]
+@misc{polu2020generative,
+  author    = {Stanislas Polu and Ilya Sutskever},
+  title     = {Generative Language Modeling for Automated Theorem Proving},
+  year      = {2020},
+  eprint    = {2009.03393},
+  archivePrefix = {arXiv},
+  note      = {arXiv preprint}
+}
+
+% [20]
+@inproceedings{wu2022autoformalization,
+  author    = {Yuhuai Wu and Albert Q. Jiang and Wenda Li and Markus N. Rabe and Charles Staats and Mateja Jamnik and Christian Szegedy},
+  title     = {Autoformalization with Large Language Models},
+  booktitle = {Advances in Neural Information Processing Systems 35 (NeurIPS 2022)},
+  year      = {2022},
+  eprint    = {2205.12615},
+  archivePrefix = {arXiv}
+}
+
+% [21]
+@inproceedings{jiang2023dsp,
+  author    = {Albert Q. Jiang and Sean Welleck and Jin Peng Zhou and Wenda Li and Jiacheng Liu and Mateja Jamnik and Timoth{\'e}e Lacroix and Yuhuai Wu and Guillaume Lample},
+  title     = {Draft, Sketch, and Prove: Guiding Formal Theorem Provers with Informal Proofs},
+  booktitle = {International Conference on Learning Representations (ICLR)},
+  year      = {2023},
+  eprint    = {2210.12283},
+  archivePrefix = {arXiv}
+}
+
+% [22]
+@inproceedings{yang2023leandojo,
+  author    = {Kaiyu Yang and Aidan M. Swope and Alex Gu and Rahul Chalamala and Peiyang Song and Shixing Yu and Saad Godil and Ryan Prenger and Anima Anandkumar},
+  title     = {{LeanDojo}: Theorem Proving with Retrieval-Augmented Language Models},
+  booktitle = {Advances in Neural Information Processing Systems 36 (NeurIPS 2023), Datasets and Benchmarks Track},
+  year      = {2023},
+  eprint    = {2306.15626},
+  archivePrefix = {arXiv}
+}
+
+% [23] Venue precisado: ESEC/FSE 2023 (antes solo "FSE").
+@inproceedings{first2023baldur,
+  author    = {Emily First and Markus N. Rabe and Talia Ringer and Yuriy Brun},
+  title     = {Baldur: Whole-Proof Generation and Repair with Large Language Models},
+  booktitle = {Proceedings of the 31st ACM Joint European Software Engineering Conference and Symposium on the Foundations of Software Engineering (ESEC/FSE)},
+  pages     = {1229--1241},
+  year      = {2023},
+  doi       = {10.1145/3611643.3616243},
+  eprint    = {2303.04910},
+  archivePrefix = {arXiv}
+}
+
+% [24] Venue corregido: ICLR 2025 (antes 2024, sin venue).
+@inproceedings{xin2025deepseekprover,
+  author    = {Huajian Xin and Z. Z. Ren and Junxiao Song and Zhihong Shao and Wanjia Zhao and Haocheng Wang and Bo Liu and Liyue Zhang and Xuan Lu and Qiushi Du and others},
+  title     = {{DeepSeek-Prover-V1.5}: Harnessing Proof Assistant Feedback for Reinforcement Learning and {Monte-Carlo} Tree Search},
+  booktitle = {International Conference on Learning Representations (ICLR)},
+  year      = {2025},
+  eprint    = {2408.08152},
+  archivePrefix = {arXiv}
+}
+
+% [25] Venue corregido: ICLR 2026 (antes 2025, sin venue).
+@inproceedings{lin2026goedel,
+  author    = {Yong Lin and Shange Tang and Bohan Lyu and Ziran Yang and Jui-Hui Chung and Haoyu Zhao and Lai Jiang and Yihan Geng and Jiawei Ge and Jingruo Sun and others},
+  title     = {{Goedel-Prover-V2}: Scaling Formal Theorem Proving with Scaffolded Data Synthesis and Self-Correction},
+  booktitle = {International Conference on Learning Representations (ICLR)},
+  year      = {2026},
+  eprint    = {2508.03613},
+  archivePrefix = {arXiv}
+}
+
+% ---------------------------------------------------------------- Eje 6
+% [26]
+@inproceedings{zheng2022minif2f,
+  author    = {Kunhao Zheng and Jesse Michael Han and Stanislas Polu},
+  title     = {{miniF2F}: a Cross-System Benchmark for Formal Olympiad-Level Mathematics},
+  booktitle = {International Conference on Learning Representations (ICLR)},
+  year      = {2022},
+  eprint    = {2109.00110},
+  archivePrefix = {arXiv}
+}
+
+% [27]
+@inproceedings{tsoukalas2024putnambench,
+  author    = {George Tsoukalas and Jasper Lee and John Jennings and Jimmy Xin and Michelle Ding and Michael Jennings and Amitayush Thakur and Swarat Chaudhuri},
+  title     = {{PutnamBench}: Evaluating Neural Theorem-Provers on the {Putnam} Mathematical Competition},
+  booktitle = {Advances in Neural Information Processing Systems 37 (NeurIPS 2024), Datasets and Benchmarks Track},
+  year      = {2024},
+  eprint    = {2407.11214},
+  archivePrefix = {arXiv}
+}
+
+% [28]
+@article{trinh2024alphageometry,
+  author    = {Trieu H. Trinh and Yuhuai Wu and Quoc V. Le and He He and Thang Luong},
+  title     = {Solving Olympiad Geometry without Human Demonstrations},
+  journal   = {Nature},
+  volume    = {625},
+  number    = {7995},
+  pages     = {476--482},
+  year      = {2024},
+  doi       = {10.1038/s41586-023-06747-5}
+}
+
+% ---------------------------------------------------------------- Eje 7
+% [29] Identificada: coincide en los tres puntos que cita related-work.md (seccion 2.7
+% "Augmentation not automation"; seccion 3.2, "AI as a tool under the direction of a human
+% who is responsible for verifying the accuracy of its output"; Apendice A con la
+% declaracion "AI Use"). Es un informe institucional, no un articulo revisado por pares.
+@techreport{mit2026aicommittee,
+  author      = {{MIT Ad Hoc Committee on AI Use in Teaching, Learning, and Research Training}},
+  title       = {Report of {MIT}'s Ad Hoc Committee on {AI} Use in Teaching, Learning, and Research Training},
+  institution = {Massachusetts Institute of Technology},
+  year        = {2026},
+  month       = aug,
+  note        = {Dated August 13, 2026},
+  url         = {https://bpb-us-e1.wpmucdn.com/sites.mit.edu/dist/d/2418/files/2026/09/AI-Committee-Final-Report-Aug-13.pdf}
+}
+
+% ---------------------------------------------------------------- Metodologia (no estan en related-work.md)
+@misc{yang2025qwen3,
+  author    = {An Yang and Anfeng Li and Baosong Yang and Beichen Zhang and Binyuan Hui and Bo Zheng and Bowen Yu and Chang Gao and Chengen Huang and Chenxu Lv and others},
+  title     = {{Qwen3} Technical Report},
+  year      = {2025},
+  eprint    = {2505.09388},
+  archivePrefix = {arXiv},
+  note      = {arXiv preprint}
+}
+
+@misc{ollama,
+  author       = {{Ollama}},
+  title        = {Ollama: Get Up and Running with Large Language Models Locally},
+  howpublished = {Software, \url{https://ollama.com}},
+  year         = {2026},
+  note         = {Accessed 2026-11-09}
+}
+
+@misc{langgraph,
+  author       = {{LangChain, Inc.}},
+  title        = {{LangGraph}},
+  howpublished = {Software, \url{https://github.com/langchain-ai/langgraph}},
+  year         = {2026},
+  note         = {Accessed 2026-11-09}
+}
+
+@misc{leanrepl,
+  author       = {{leanprover-community}},
+  title        = {{REPL}: A Read-Eval-Print Loop for {Lean} 4},
+  howpublished = {Software, \url{https://github.com/leanprover-community/repl}, tag v4.15.0},
+  year         = {2024}
+}
+
+@inproceedings{kwon2023vllm,
+  author    = {Woosuk Kwon and Zhuohan Li and Siyuan Zhuang and Ying Sheng and Lianmin Zheng and Cody Hao Yu and Joseph E. Gonzalez and Hao Zhang and Ion Stoica},
+  title     = {Efficient Memory Management for Large Language Model Serving with {PagedAttention}},
+  booktitle = {Proceedings of the 29th Symposium on Operating Systems Principles (SOSP)},
+  pages     = {611--626},
+  year      = {2023},
+  doi       = {10.1145/3600006.3613165}
+}
+
+@article{wilson1927,
+  author    = {Edwin B. Wilson},
+  title     = {Probable Inference, the Law of Succession, and Statistical Inference},
+  journal   = {Journal of the American Statistical Association},
+  volume    = {22},
+  number    = {158},
+  pages     = {209--212},
+  year      = {1927},
+  doi       = {10.1080/01621459.1927.10502953}
+}
+
+@article{mcnemar1947,
+  author    = {Quinn McNemar},
+  title     = {Note on the Sampling Error of the Difference Between Correlated Proportions or Percentages},
+  journal   = {Psychometrika},
+  volume    = {12},
+  number    = {2},
+  pages     = {153--157},
+  year      = {1947},
+  doi       = {10.1007/BF02295996}
+}
+
+@article{dunn1961,
+  author    = {Olive Jean Dunn},
+  title     = {Multiple Comparisons among Means},
+  journal   = {Journal of the American Statistical Association},
+  volume    = {56},
+  number    = {293},
+  pages     = {52--64},
+  year      = {1961},
+  doi       = {10.1080/01621459.1961.10482090}
+}
+
+@article{efron1979,
+  author    = {Bradley Efron},
+  title     = {Bootstrap Methods: Another Look at the Jackknife},
+  journal   = {The Annals of Statistics},
+  volume    = {7},
+  number    = {1},
+  pages     = {1--26},
+  year      = {1979},
+  doi       = {10.1214/aos/1176344552}
+}
