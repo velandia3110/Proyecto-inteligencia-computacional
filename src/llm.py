@@ -169,9 +169,12 @@ class Prover:
     y PROVER_MODEL con el nombre local del modelo."""
 
     def __init__(self, url: str | None = None, model: str = PROVER_MODEL,
-                 temperature: float = 0.6, max_tokens: int = 32768):
+                 temperature: float = 0.6,
+                 max_tokens: int = int(os.environ.get("PROVER_MAX_TOKENS", 32768))):
         # 32K de salida es el modo estandar del paper (plan + prueba). Con menos se corta el
         # razonamiento antes del bloque lean4. vLLM: --max-model-len 40960.
+        # ponytail: en la GPU de 4 GB (Ollama, ~8 tok/s) se corre con PROVER_MAX_TOKENS=6144,
+        # ver decisions.md 2026-11-09; con GPU grande volver a 32K.
         self.url = (url or os.environ["PROVER_URL"]).rstrip("/") + "/v1/chat/completions"
         self.model = model
         self.temperature = temperature
@@ -183,7 +186,7 @@ class Prover:
         data, ms = _post(self.url, {
             "model": self.model, "messages": [{"role": "user", "content": prompt}],
             "temperature": self.temperature, "max_tokens": max_tokens or self.max_tokens,
-        }, timeout=600)
+        }, timeout=1800)
         u = data.get("usage", {})
         return Reply(data["choices"][0]["message"]["content"], self.model, u.get("prompt_tokens", 0),
                      u.get("completion_tokens", 0), ms)

@@ -1,0 +1,17 @@
+# Goedel-Prover-V2-8B (GGUF Q4_K_M de mradermacher) servido con Ollama.
+#   ollama pull hf.co/mradermacher/Goedel-Prover-V2-8B-GGUF:Q4_K_M
+#   ollama create goedel-prover -f lean/goedel-prover.Modelfile
+# La plantilla del GGUF abre `<think>` al final del prompt: Ollama manda toda la salida a
+# `reasoning` y `content` llega vacio. Goedel no se entreno asi (apply_chat_template de Qwen3
+# sin enable_thinking deja solo `<|im_start|>assistant`), entonces va ChatML plano.
+FROM hf.co/mradermacher/Goedel-Prover-V2-8B-GGUF:Q4_K_M
+TEMPLATE """{{- range .Messages }}<|im_start|>{{ .Role }}
+{{ .Content }}<|im_end|>
+{{ end }}<|im_start|>assistant
+"""
+PARAMETER num_ctx 8192
+PARAMETER temperature 0.6
+PARAMETER top_p 0.95
+PARAMETER top_k 20
+PARAMETER stop <|im_start|>
+PARAMETER stop <|im_end|>
