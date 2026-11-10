@@ -37,7 +37,7 @@ def test_camino_feliz():
         assert out["solved"] and out["verdict"] == "OK", out
         assert "sorry" not in out["proof"] and "    linarith" in out["proof"]
         assert c.budget.used == 4  # plan + 2 bocetos + 1 formalizacion
-        stages = [e.get("stage") for e in events(c)]
+        stages = [e["stage"] for e in events(c) if "stage" in e]
         assert stages == ["VERIFY_SKELETON", "VERIFY", "VERIFY_FINAL"], stages
 
 
@@ -71,7 +71,8 @@ def test_prover_sin_codigo_es_fallo_de_formalizacion():
         prover = FakeLLM("no se", prover_says("linarith"))
         c = ctx(llm_local=local, llm_prover=prover, repl=ScriptRepl(good=["  linarith"]), tmp=tmp)
         assert agents_only(c)["solved"]
-        assert [e["verdict"] for e in events(c)][:2] == ["OK", "FORMALIZATION_FAILED"]
+        ev = [e for e in events(c) if e.get("event") != "skeleton_attempt"]
+        assert [e["verdict"] for e in ev][:2] == ["OK", "FORMALIZATION_FAILED"], ev
 
 
 def test_plan_fallido():

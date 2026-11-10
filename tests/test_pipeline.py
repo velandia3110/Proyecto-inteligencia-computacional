@@ -188,15 +188,28 @@ def test_planner_ok_a_la_primera():
         assert c.budget.used == 1
 
 
-def test_planner_que_cambia_el_enunciado_replanifica():
+def test_planner_no_puede_cambiar_el_enunciado():
+    """El encabezado del esqueleto sale del enunciado original, nunca del modelo."""
     from src.agents import plan_and_check
     bad = GOOD_SK.replace("x = 2 :=", "x = 3 :=")
     with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmp:
-        local = FakeLLM(_plan_json(bad, GOOD_SG), _plan_json(GOOD_SK, GOOD_SG))
-        c = ctx(llm_local=local, tmp=tmp)
+        c = ctx(llm_local=FakeLLM(_plan_json(bad, GOOD_SG)), tmp=tmp)
         planned, verdict = plan_and_check(c)
-        assert verdict == "OK" and c.budget.used == 2
-        assert "cambio el enunciado" in local.seen[1]  # el error llego al reintento
+        assert verdict == "OK" and c.budget.used == 1
+        assert "x = 3" not in planned["skeleton"]
+
+
+def test_normalizar_esqueleto_de_qwen():
+    """Los dos fallos de qwen3-4b en dev: sin `:= by` y sin tactica final."""
+    from src.agents import FALLBACK_CLOSE, normalize_skeleton
+    st = "theorem t (x : ℝ) (h : 2 * x = 4) : x = 2"
+    sk = normalize_skeleton(st + "\n  have s1 : x = 2 := by sorry", st)
+    assert sk == st + " := by\n  have s1 : x = 2 := by sorry\n  " + FALLBACK_CLOSE
+    sk = normalize_skeleton(st + " := by\n  have s1 : x = 2 := sorry\n  exact s1", st)
+    assert sk.endswith("have s1 : x = 2 := by sorry\n  first | (exact s1) | " + FALLBACK_CLOSE)
+    sk = normalize_skeleton(st + " := by\n    have s1 : x = 2 := by\n      sorry\n"
+                            "    have s2 : x > 0 := by linarith\n    have s3 : x = x := by sorry", st)
+    assert "\n  have s1 : x = 2 := by sorry\n  have s2 : x > 0 := by linarith\n  have s3" in sk
 
 
 def test_planner_se_rinde_tras_un_replan():

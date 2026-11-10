@@ -47,21 +47,64 @@ def plan(ctx, retry: dict | None = None) -> dict:
         out = parse_json(r.text)
     except ValueError as e:
         raise AgentError(f"el planificador no devolvio JSON: {e}") from None
-    out = _checked("planner", out)
-
-    sk = out["skeleton"]
+    if not isinstance(out, dict) or not isinstance(out.get("skeleton"), str):
+        raise AgentError("el JSON no trae `skeleton` como texto")
+    model_sk = out["skeleton"]
+    if not _HAVE.search(re.sub(r":=\s*(?:by\s*)?\n\s*sorry", ":= by sorry", model_sk)):
+        # qwen3-4b a menudo deja el esqueleto en el puro enunciado y pone los pasos solo en
+        # `subgoals`: se arman los `have` desde ahi y el kernel decide si compilan.
+        model_sk += "".join(f"\n  have {sg['name']} : {' '.join(str(sg['statement']).split())} := by sorry"
+                            for sg in out.get("subgoals") or []
+                            if isinstance(sg, dict) and re.fullmatch(r"\w+", str(sg.get("name", "")))
+                            and sg.get("statement"))
+    out["skeleton"] = sk = normalize_skeleton(model_sk, ctx.problem["formal_statement"])
     if not statement_preserved(sk, ctx.problem["formal_statement"]):
-        raise AgentError("el esqueleto cambio el enunciado del teorema")
-    for sg in out["subgoals"]:
-        m = re.search(rf"^\s*have\s+{re.escape(sg['name'])}\s*:(.*):=\s*by\s+sorry\s*$", sk, re.M)
-        if not m:
-            raise AgentError(f"el subobjetivo {sg['name']} no aparece como "
-                             f"`have {sg['name']} : ... := by sorry` en una sola linea")
-        # Manda el texto del esqueleto (lo que el kernel ya reviso), no el del JSON.
-        sg["statement"] = m[1].strip()
+        raise AgentError("el esqueleto no trae ningun `have nombre : enunciado := by sorry` en una linea")
+    # Los subobjetivos salen del texto del esqueleto (lo que el kernel revisa), no del JSON;
+    # del JSON solo se toman las pistas por nombre. Despues se valida el contrato.
+    hints = {sg.get("name"): sg for sg in out.get("subgoals") or [] if isinstance(sg, dict)}
+    out["subgoals"] = [{"name": n, "statement": st.strip(),
+                        "depends_on": [d for d in hints.get(n, {}).get("depends_on", []) if isinstance(d, str)],
+                        **({"nl_hint": str(hints[n]["nl_hint"])} if "nl_hint" in hints.get(n, {}) else {})}
+                       for n, st in _HAVE.findall(sk)]
+    if not 1 <= len(out["subgoals"]) <= 5:
+        raise AgentError(f"hacen falta entre 1 y 5 `have ... := by sorry`, el esqueleto trae "
+                         f"{len(out['subgoals'])}: junta pasos")
+    out = _checked("planner", {"theorem_name": str(out.get("theorem_name") or ctx.problem_id),
+                               "skeleton": sk, "subgoals": out["subgoals"],
+                               "rationale": str(out.get("rationale", ""))})
     if sk.count("sorry") != len(out["subgoals"]):
         raise AgentError("hay `sorry` fuera de los subobjetivos declarados")
     return out
+
+
+_HAVE = re.compile(r"^\s*have\s+(\w+)\s*:(.*?):=\s*(?:by\s+)?sorry\s*$", re.M)
+# Cierre de respaldo (qwen3-4b suele poner la meta como un `have` mas, o cerrar con un
+# `exact` que no encaja). Va despues de la tactica del modelo, si la hay. Si los `have` no
+# implican la meta, el kernel lo rechaza y se replanifica igual que antes. decisions.md 2026-11-09.
+FALLBACK_CLOSE = ("first | assumption | linarith | nlinarith | norm_num | omega"
+                  " | ((repeat' constructor) <;> first | assumption | linarith | nlinarith)")
+
+
+def normalize_skeleton(model_sk: str, formal_statement: str) -> str:
+    """Encabezado = enunciado original + `:= by` (el modelo lo alteraba o olvidaba el `:= by`).
+    Del modelo se toma lo que va desde el primer `have`; su tactica final se intenta primero."""
+    model_sk = re.sub(r":=\s*(?:by\s*)?\n\s*sorry", ":= by sorry", model_sk)
+    lines = model_sk.splitlines()
+    idx = [i for i, l in enumerate(lines) if _HAVE.match(l)]
+    if not idx:
+        return model_sk  # sin `have` no hay nada que normalizar; lo rechaza plan()
+    base = len(lines[idx[0]]) - len(lines[idx[0]].lstrip())  # sangria del modelo -> 2
+    body = []
+    for l in lines[idx[0]:idx[-1] + 1]:
+        m = _HAVE.match(l)
+        if m:
+            body.append(f"  have {m[1]} : {m[2].strip()} := by sorry")
+        elif l.strip():
+            body.append("  " + l[min(base, len(l) - len(l.lstrip())):])
+    tail = [l.strip() for l in lines[idx[-1] + 1:] if l.strip()]
+    close = f"first | ({'; '.join(tail)}) | {FALLBACK_CLOSE}" if tail else FALLBACK_CLOSE
+    return "\n".join([formal_statement.rstrip() + " := by", *body, f"  {close}"])
 
 
 def verify_skeleton(ctx, planned: dict) -> Verdict:
@@ -77,9 +120,15 @@ def plan_and_check(ctx, max_replans: int = 1, retry: dict | None = None) -> tupl
         try:
             planned = plan(ctx, retry)
         except AgentError as e:
+            ctx.log.event(problem_id=ctx.problem_id, agent="planner", event="skeleton_attempt",
+                          attempt=i, verdict="PLANNING_ERROR", error=str(e)[:500])
             retry, verdict = {"skeleton": "(salida invalida)", "error": str(e)}, "PLANNING_ERROR"
             continue
         v = verify_skeleton(ctx, planned)
+        # Esqueleto y error al log: es el dato del analisis de fallos (§4.6 del informe).
+        ctx.log.event(problem_id=ctx.problem_id, agent="verifier", event="skeleton_attempt",
+                      attempt=i, verdict=v.verdict, skeleton=planned["skeleton"],
+                      error=str(v.raw)[:1500])
         if v.ok:
             return planned, "OK"
         retry, verdict = {"skeleton": planned["skeleton"], "error": v.raw}, v.verdict
