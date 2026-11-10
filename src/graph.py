@@ -252,9 +252,12 @@ def shared_retriever():
     global _retriever
     with _lock:
         if _retriever is None:
-            from src.retriever import Retriever
+            import os
 
-            _retriever = Retriever.load()
+            from src.retriever import RemoteRetriever, Retriever
+
+            url = os.environ.get("RETRIEVER_URL")
+            _retriever = RemoteRetriever(url) if url else Retriever.load()
     return _retriever
 
 
